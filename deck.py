@@ -14,6 +14,9 @@ class Card:
     def __eq__(self, other):
         return self.suit == other.suit and self.value == other.value
 
+    def __hash__(self):
+        return hash(str(self))
+
     def __str__(self):
         suit_dict = {
             3: "♠",
@@ -47,15 +50,14 @@ class Deck:
         from random import shuffle
         shuffle(self.cards)
 
-
     def pop(self):
         return self.cards.pop()
-
 
     def __str__(self):
         str_list = [str(card) for card in self.cards]
         s = ", ".join(str_list)
         return s
+
 
 def main():
     deck = Deck()

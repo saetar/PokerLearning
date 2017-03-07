@@ -23,16 +23,26 @@ class Player:
     def won(self, pool_amt):
         self.chips += pool_amt
 
-    def get_bid(self, game):
-        Actions = game.get_actions()
+    def clear_hand(self):
+        self.hand = set()
+
+    def get_bid(self, game_state, other_bet=None):
+        (actions, communal_cards, other_player_stats) = game_state
+        if other_bet is not None:
+            print(other_bet)
         if not self.is_computer:
-            bid = input()
+            communal_cards_strs = [str(card) for card in communal_cards]
+            ccs = ", ".join(communal_cards_strs)
+            hand_cards_str = [str(card) for card in self.hand]
+            hcs = ", ".join(hand_cards_str)
+            print("The communal cards are: {}, and your hand is {}".format(ccs, hcs))
+            bid = input("Would you like to [f]old, [c]all, or [r]aise?")
             if bid[0] == 'f':
-                return Actions.FOLD
+                return actions.FOLD
             if bid[0] == 'c':
-                return Actions.CALL
-            return Actions.RAISE
-        else: # Random action for now
-            actions = [Actions.RAISE, Actions.CALL, Actions.FOLD]
-            action = random.choice(actions)
+                return actions.CALL
+            return actions.RAISE
+        else:  # Random action for now
+            action_choices = [actions.RAISE, actions.CALL, actions.FOLD]
+            action = random.choice(action_choices)
             return action

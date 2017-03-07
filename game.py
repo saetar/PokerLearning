@@ -9,14 +9,15 @@ class Actions(Enum):
     CALL = 1
     RAISE = 2
 
+
 class Game:
     def __init__(self, chips):
         self.human_player = Player(chips, False)
         self.computer_player = Player(chips, True)
         self.deck = Deck()
 
-
-    def get_actions(self):
+    @staticmethod
+    def get_actions():
         return Actions
 
     def start_game(self):
@@ -31,8 +32,6 @@ class Game:
             self.play_hand(first_player, second_player, bid_amount)
             counter *= -1
 
-
-
     def play_hand(self, first_player, second_player, bid_amount):
         """
             plays out a hand, keeping track of antes, and actions
@@ -40,6 +39,8 @@ class Game:
         self.deck.shuffle()
         communal_cards = set()
         winner = None
+        first_player.clear_hand()
+        second_player.clear_hand()
         """  Deal initial hands to players  """
         first_player.add_card_to_hand(self.deck.pop())
         second_player.add_card_to_hand(self.deck.pop())
@@ -48,13 +49,13 @@ class Game:
 
         """  initialize pool and ante up players  """
         pool = 0
-        pool += self.first_player.ante(bid_amount / 2.0)
-        pool += self.second_player.ante(bid_amount)
+        pool += first_player.ante(bid_amount / 2.0)
+        pool += second_player.ante(bid_amount)
 
         """  Go through a round of betting  """
         pool_amt, winner = self.do_betting_round(first_player, second_player, bid_amount, communal_cards)
         pool += pool_amt
-        if winner:
+        if winner is not None:
             winner.won(pool)
             return
 
@@ -106,22 +107,20 @@ class Game:
             first_player.won(pool / 2.0)
             second_player.won(pool / 2.0)
 
-
-
-    def do_betting_round(self, first_player, second_player, bid_amount):
+    def do_betting_round(self, first_player, second_player, bid_amount, communal_cards):
         """
-
         :param first_player: first player in rotation
         :param second_player: second player in rotation
         :param bid_amount: amount each bid is worth
+        :param communal_cards: communal cards
         :return (pool, winner)
                  pool is total amount bet, winner is player that won else None:
         """
         pool = 0
-        do_again = False
+        do_again = True
         winner = None
         while do_again:
-            first_player_bet, second_player_bet = self.get_bids(first_player, second_player)
+            first_player_bet, second_player_bet = self.get_bids(first_player, second_player, communal_cards)
             if first_player_bet == Actions.RAISE:
                 pool += first_player.ante(bid_amount)
                 if second_player_bet == Actions.CALL:
@@ -149,11 +148,13 @@ class Game:
                 do_again = False
         return pool, winner
 
-    def get_bids(self, first_player, second_player):
-        first_player_bet = first_player.get_bid(self)
-        second_player_bet = second_player.get_bid(self)
+    @staticmethod
+    def get_bids(first_player, second_player, communal_cards):
+        first_player_game_state = (Actions, communal_cards, second_player)
+        first_player_bet = first_player.get_bid(first_player_game_state)
+        second_player_game_state = (Actions, communal_cards, first_player)
+        second_player_bet = second_player.get_bid(second_player_game_state, other_bet=first_player_bet)
         return first_player_bet, second_player_bet
-
 
 
 class HandType(Enum):
@@ -186,3 +187,9 @@ class Hand:
     # def __lt__(self, other):
 
 
+def main():
+    game = Game(100)
+    game.start_game()
+
+if __name__ == '__main__':
+    main()

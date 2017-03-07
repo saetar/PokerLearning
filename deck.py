@@ -24,13 +24,13 @@ class Card:
         value_str = None
         if self.value == 1:
             value_str = "A"
-        elif self.value < 10:
+        elif self.value <= 10:
             value_str = str(self.value)
-        elif self.value == 10:
-            value_str = "J"
         elif self.value == 11:
-            value_str = "Q"
+            value_str = "J"
         elif self.value == 12:
+            value_str = "Q"
+        elif self.value == 13:
             value_str = "K"
         return "{}{}".format(suit_dict[self.suit], value_str)
 
@@ -39,7 +39,7 @@ class Deck:
     def __init__(self):
         cards = []
         for suit in range(4):
-            for value in range(12):
+            for value in range(13):
                 cards.append(Card(suit, value))
         self.cards = cards
 

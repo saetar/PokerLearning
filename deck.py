@@ -47,6 +47,11 @@ class Deck:
         from random import shuffle
         shuffle(self.cards)
 
+
+    def pop(self):
+        return self.cards.pop()
+
+
     def __str__(self):
         str_list = [str(card) for card in self.cards]
         s = ", ".join(str_list)

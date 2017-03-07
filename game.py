@@ -15,6 +15,8 @@ class Game:
         self.human_player = Player(chips, False)
         self.computer_player = Player(chips, True)
         self.deck = Deck()
+        self.pool = 0
+        print("You start with:", chips, "chips")
 
     @staticmethod
     def get_actions():
@@ -30,12 +32,24 @@ class Game:
             first_player = self.computer_player if counter < 0 else self.human_player
             second_player = self.human_player if counter < 0 else self.computer_player
             self.play_hand(first_player, second_player, bid_amount)
+            print("-------------- NEW HAND -------------")
             counter *= -1
 
     def play_hand(self, first_player, second_player, bid_amount):
         """
             plays out a hand, keeping track of antes, and actions
         """
+        """ Tell the player how many chips they have and which player they are"""
+        print("You have", self.human_player.chips, "chips")
+        if self.human_player == first_player:
+            print("You are the first player")
+            opponent_player = second_player
+        elif self.human_player == second_player:
+            print("You are the second player")
+            opponent_player = first_player
+        else:
+            print("rip")
+            
         self.deck.shuffle()
         communal_cards = set()
         winner = None
@@ -48,15 +62,15 @@ class Game:
         second_player.add_card_to_hand(self.deck.pop())
 
         """  initialize pool and ante up players  """
-        pool = 0
-        pool += first_player.ante(bid_amount / 2.0)
-        pool += second_player.ante(bid_amount)
-
+        self.pool = 0
+        self.pool += first_player.ante(bid_amount / 2.0)
+        self.pool += second_player.ante(bid_amount)
+        print("The pot starts at: ", self.pool)
         """  Go through a round of betting  """
-        pool_amt, winner = self.do_betting_round(first_player, second_player, bid_amount, communal_cards)
-        pool += pool_amt
+        winner = self.do_betting_round(first_player, second_player, bid_amount, communal_cards)
+        print("The pot preflop is: ", self.pool)
         if winner is not None:
-            winner.won(pool)
+            winner.won(self.pool)
             return
 
         """  Add 3 cards to communal cards, with burns  """
@@ -68,10 +82,10 @@ class Game:
         communal_cards.add(self.deck.pop())
 
         """  Go through a 2nd round of betting  """
-        pool_amt, winner = self.do_betting_round(first_player, second_player, bid_amount, communal_cards)
-        pool += pool_amt
+        winner = self.do_betting_round(first_player, second_player, bid_amount, communal_cards)
+        print("The pot after the flop is: ", self.pool)
         if winner:
-            winner.won(pool)
+            winner.won(self.pool)
             return
 
         """  Add one card to communal with burn  """
@@ -79,10 +93,10 @@ class Game:
         communal_cards.add(self.deck.pop())
 
         """  Go through a 3nd round of betting  """
-        pool_amt, winner = self.do_betting_round(first_player, second_player, bid_amount, communal_cards)
-        pool += pool_amt
+        winner = self.do_betting_round(first_player, second_player, bid_amount, communal_cards)
+        print("The pot after the turn is: ", self.pool)
         if winner:
-            winner.won(pool)
+            winner.won(self.pool)
             return
 
         """  Add one card to communal with burn  """
@@ -90,22 +104,22 @@ class Game:
         communal_cards.add(self.deck.pop())
 
         """  Go through a 3nd round of betting  """
-        pool_amt, winner = self.do_betting_round(first_player, second_player, bid_amount, communal_cards)
-        pool += pool_amt
+        winner = self.do_betting_round(first_player, second_player, bid_amount, communal_cards)
+        print("The pot after the river is: ", self.pool)
         if winner:
-            winner.won(pool)
+            winner.won(self.pool)
             return
 
         """  Evaluate hands at end  """
         first_player_cards = Hand(communal_cards.union(first_player.get_hand()))
         second_player_cards = Hand(communal_cards.union(second_player.get_hand()))
         if first_player_cards < second_player_cards:
-            second_player.won(pool)
+            second_player.won(self.pool)
         elif first_player > second_player_cards:
-            first_player.won(pool)
+            first_player.won(self.pool)
         else:
-            first_player.won(pool / 2.0)
-            second_player.won(pool / 2.0)
+            first_player.won(self.pool / 2.0)
+            second_player.won(self.pool / 2.0)
 
     def do_betting_round(self, first_player, second_player, bid_amount, communal_cards):
         """
@@ -116,37 +130,61 @@ class Game:
         :return (pool, winner)
                  pool is total amount bet, winner is player that won else None:
         """
-        pool = 0
+        #pool = 0 #We don't want to reset the pool to 0
         do_again = True
         winner = None
+        no_bets = True
+        second_player_bet = -1
         while do_again:
-            first_player_bet, second_player_bet = self.get_bids(first_player, second_player, communal_cards)
+            first_player_bet = self.get_bid(first_player, second_player, communal_cards, second_player_bet)
             if first_player_bet == Actions.RAISE:
-                pool += first_player.ante(bid_amount)
+                no_bets = False
+                self.pool += first_player.ante(bid_amount)
+                print("first player raised: ",bid_amount,"\n")
+                second_player_bet = self.get_bid(second_player, first_player, communal_cards,first_player_bet)
                 if second_player_bet == Actions.CALL:
-                    pool += second_player.ante(bid_amount)
+                    self.pool += second_player.ante(bid_amount)
+                    print("second player called the raise\n")
                     do_again = False
                 elif second_player_bet == Actions.FOLD:
                     winner = first_player
+                    print("second player folded\n")
                     do_again = False
                 elif second_player_bet == Actions.RAISE:
-                    pool += second_player.ante(2 * bid_amount)
+                    print("second player raised\n")
+                    self.pool += second_player.ante(2 * bid_amount)
                     do_again = True
             elif first_player_bet == Actions.CALL:
-                if second_player_bet == Actions.RAISE:
-                    pool += second_player.ante(bid_amount)
-                    do_again = True
-                elif second_player_bet == Actions.CALL:
-                    if do_again:
-                        pool += first_player.ante(bid_amount)
+                if no_bets:
+                    print("first player checked\n")
+                    second_player_bet = self.get_bid(second_player, first_player, communal_cards,first_player_bet)
+                    if second_player_bet == Actions.RAISE:
+                        no_bets = False
+                        print("second player raised\n")
+                        self.pool += second_player.ante(bid_amount)
+                        do_again = True
+                    elif second_player_bet == Actions.CALL:
+                        if no_bets:
+                            print("second player checked\n")
+                        else:        
+                            print("second player called\n")
+                        if not no_bets:
+                            self.pool += first_player.ante(bid_amount)
+                        do_again = False
+                    elif second_player_bet == Actions.FOLD:
+                        print("second player folded\n")
+                        winner = first_player
+                        do_again = False
+                else:
+                    print("first player called\n")
                     do_again = False
-                elif second_player_bet == Actions.FOLD:
-                    winner = first_player
-                    do_again = False
+                
             elif first_player_bet == Actions.FOLD:
+                print("first player folded\n")
                 winner = second_player
                 do_again = False
-        return pool, winner
+        
+        return winner
 
     @staticmethod
     def get_bids(first_player, second_player, communal_cards):
@@ -155,6 +193,13 @@ class Game:
         second_player_game_state = (Actions, communal_cards, first_player)
         second_player_bet = second_player.get_bid(second_player_game_state, other_bet=first_player_bet)
         return first_player_bet, second_player_bet
+
+    #We need to get the bids 1 at a time
+    @staticmethod
+    def get_bid(player, opponent, communal_cards, opponent_bet):
+        player_game_state = (Actions, communal_cards, opponent_bet, opponent)
+        player_bet = player.get_bid(player_game_state)
+        return player_bet
 
 
 class HandType(Enum):

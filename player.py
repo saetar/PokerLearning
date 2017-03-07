@@ -1,5 +1,5 @@
 import random
-from game import Actions
+
 
 class Player:
     def __init__(self, chips, is_computer):
@@ -23,7 +23,8 @@ class Player:
     def won(self, pool_amt):
         self.chips += pool_amt
 
-    def get_bid(self, game, bid_amount):
+    def get_bid(self, game):
+        Actions = game.get_actions()
         if not self.is_computer:
             bid = input()
             if bid[0] == 'f':

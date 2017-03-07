@@ -16,10 +16,10 @@ class Card:
 
     def __str__(self):
         suit_dict = {
-            3 : "♠",
-            2 : "♥",
-            1 : "♦",
-            0 : "♣"
+            3: "♠",
+            2: "♥",
+            1: "♦",
+            0: "♣"
         }
         value_str = None
         if self.value == 1:

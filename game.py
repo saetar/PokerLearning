@@ -3,6 +3,7 @@ from enum import Enum
 from player import Player
 from deck import Deck
 
+
 class Actions(Enum):
     FOLD = 0
     CALL = 1
@@ -13,6 +14,10 @@ class Game:
         self.human_player = Player(chips, False)
         self.computer_player = Player(chips, True)
         self.deck = Deck()
+
+
+    def get_actions(self):
+        return Actions
 
     def start_game(self):
         """
@@ -144,7 +149,6 @@ class Game:
                 do_again = False
         return pool, winner
 
-
     def get_bids(self, first_player, second_player):
         first_player_bet = first_player.get_bid(self)
         second_player_bet = second_player.get_bid(self)
@@ -163,7 +167,6 @@ class HandType(Enum):
     FOURS = 7
     STRAIGHT_FLUSH = 8
     ROYAL_FLUSH = 9
-
 
 
 class Hand:

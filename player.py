@@ -28,15 +28,13 @@ class Player:
 
     def get_bid(self, game_state, other_bet=None):
         (actions, communal_cards, other_player_stats) = game_state
-        if other_bet is not None:
-            print(other_bet)
         if not self.is_computer:
             communal_cards_strs = [str(card) for card in communal_cards]
             ccs = ", ".join(communal_cards_strs)
             hand_cards_str = [str(card) for card in self.hand]
             hcs = ", ".join(hand_cards_str)
-            print("The communal cards are: {}, and your hand is {}".format(ccs, hcs))
-            bid = input("Would you like to [f]old, [c]all, or [r]aise?")
+            print("\nThe communal cards are: {}, and your hand is {}".format(ccs, hcs))
+            bid = input("Would you like to [f]old, [c]all, or [r]aise?\n")
             if bid[0] == 'f':
                 return actions.FOLD
             if bid[0] == 'c':

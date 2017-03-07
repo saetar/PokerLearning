@@ -34,6 +34,10 @@ class Game:
 
     def play_hand(self, first_player, second_player, bid_amount):
         """
+            :param first_player: first player to bid
+            :param second_player: the second player to bid
+            :param bid_amount: the amount a raise is worth
+
             plays out a hand, keeping track of antes, and actions
         """
         self.deck.shuffle()

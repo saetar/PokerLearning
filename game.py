@@ -115,15 +115,15 @@ class Game:
 
         """  Evaluate hands at end  """
         first_player_score = self.evalHand(first_player.get_hand(), list(communal_cards))
-        second_player_score =  self.evalHand(second_player.get_hand(), list(communal_cards))
+        second_player_score = self.evalHand(second_player.get_hand(), list(communal_cards))
         #LOW SCORE WINS IN DEUCES
         if first_player_score > second_player_score:
-            print("second player won a pot of: ",self.pool)
+            print("second player won a pot of: ", self.pool)
             print("they had")
             second_player.print_hand()
             second_player.won(self.pool)
         elif first_player_score < second_player_score:
-            print("first player won a pot of: ",self.pool)
+            print("first player won a pot of: ", self.pool)
             print("they had")
             first_player.print_hand()
             first_player.won(self.pool)
@@ -198,18 +198,10 @@ class Game:
         
         return winner
 
-    @staticmethod
-    def get_bids(first_player, second_player, communal_cards):
-        first_player_game_state = (Actions, communal_cards, second_player)
-        first_player_bet = first_player.get_bid(first_player_game_state)
-        second_player_game_state = (Actions, communal_cards, first_player)
-        second_player_bet = second_player.get_bid(second_player_game_state, other_bet=first_player_bet)
-        return first_player_bet, second_player_bet
-
     #We need to get the bids 1 at a time
     @staticmethod
     def get_bid(player, opponent, communal_cards, opponent_bet):
-        player_game_state = (Actions, communal_cards, opponent_bet, opponent)
+        player_game_state = (Actions, communal_cards, opponent_bet, opponent, BiddingRound(len(communal_cards)))
         player_bet = player.get_bid(player_game_state)
         return player_bet
 
@@ -225,11 +217,15 @@ class Game:
                 board.append(Card.new(card))
         for card in hand_cards_str:
             handList.append(Card.new(card))
-        #board = [Card.new('Ah'), Card.new('Kd'),Card.new('Jc')]
-        #hand = [Card.new('Qs'),Card.new('Th')]
         evaluator = Evaluator()
         return evaluator.evaluate(board, handList)
 
+
+class BiddingRound(Enum):
+    PRE_FLOP = 0
+    ON_FLOP = 3
+    ON_TURN = 4
+    ON_RIVER = 5
 
 
 class HandType(Enum):

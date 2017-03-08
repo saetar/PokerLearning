@@ -60,7 +60,6 @@ class Card:
         return "{}{}".format(value_str, suit_dict[self.suit])
 
 
-
 class Deck:
     def __init__(self):
         cards = []

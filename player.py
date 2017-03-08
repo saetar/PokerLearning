@@ -26,14 +26,8 @@ class Player:
     def clear_hand(self):
         self.hand = set()
 
-
-    def get_bid(self, game_state, other_bet=None):
-
-        #(actions, communal_cards, other_player_stats) = game_state
-        (actions, communal_cards, other_player_action, other_player_stats) = game_state
-        if other_bet is not None:
-            print(other_bet)
-
+    def get_bid(self, game_state):
+        (actions, communal_cards, other_player_action, other_player_stats, bidding_round) = game_state
         if not self.is_computer:
             communal_cards_strs = [card.to_str() for card in communal_cards]
             ccs = ", ".join(communal_cards_strs)

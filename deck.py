@@ -19,6 +19,28 @@ class Card:
 
     def __str__(self):
         suit_dict = {
+            3: "s",
+            2: "h",
+            1: "d",
+            0: "c"
+        }
+        value_str = None
+        if self.value == 1:
+            value_str = "A"
+        elif self.value <= 9:
+            value_str = str(self.value)
+        elif self.value == 10:
+            value_str = "T"
+        elif self.value == 11:
+            value_str = "J"
+        elif self.value == 12:
+            value_str = "Q"
+        elif self.value == 13:
+            value_str = "K"
+        return "{}{}".format(value_str, suit_dict[self.suit])
+
+    def to_str(self):
+        suit_dict = {
             3: "♠",
             2: "♥",
             1: "♦",
@@ -35,7 +57,8 @@ class Card:
             value_str = "Q"
         elif self.value == 13:
             value_str = "K"
-        return "{}{}".format(suit_dict[self.suit], value_str)
+        return "{}{}".format(value_str, suit_dict[self.suit])
+
 
 
 class Deck:

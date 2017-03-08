@@ -1,13 +1,10 @@
-import itertools
-from enum import Enum
+from util import Actions
 from player import Player
 from deck import Deck
 from deuces import Card
 from deuces import Evaluator
-class Actions(Enum):
-    FOLD = 0
-    CALL = 1
-    RAISE = 2
+from util import Counter
+
 
 
 class Game:
@@ -18,6 +15,7 @@ class Game:
         self.pool = 0
         self.chips = chips
         self.hands_played = 0
+        self.game_state = Counter()
         print("You start with:", chips, "chips")
 
     @staticmethod
@@ -33,6 +31,8 @@ class Game:
         while not self.human_player.is_out() and not self.computer_player.is_out():
             first_player = self.computer_player if counter < 0 else self.human_player
             second_player = self.human_player if counter < 0 else self.computer_player
+            self.game_state["human-player-stats"] = self.human_player.get_stats()
+            self.game_state["computer-player-stats"] = self.computer_player.get_stats()
             self.play_hand(first_player, second_player, bid_amount)
             self.hands_played += 1
             self.get_players_winnings()
@@ -130,7 +130,7 @@ class Game:
         """  Evaluate hands at end  """
         first_player_score = self.evalHand(first_player.get_hand(), list(communal_cards))
         second_player_score = self.evalHand(second_player.get_hand(), list(communal_cards))
-        #LOW SCORE WINS IN DEUCES
+        # LOW SCORE WINS IN DEUCES
         if first_player_score > second_player_score:
             print("second player won a pot of: ", self.pool)
             print("they had")
@@ -148,6 +148,9 @@ class Game:
             first_player.won(self.chips, self.pool / 2.0)
             second_player.won(self.chips, self.pool / 2.0)
 
+    def update_game_state(self, key, value):
+        self.game_state[key] = value
+
     def do_betting_round(self, first_player, second_player, communal_cards):
         """
         :param first_player: first player in rotation
@@ -157,10 +160,13 @@ class Game:
         :return (pool, winner)
                  pool is total amount bet, winner is player that won else None:
         """
-        #pool = 0 #We don't want to reset the pool to 0
+        self.update_game_state("communal-cards", communal_cards)
+        first = self.computer_player if first_player == self.computer_player else self.human_player
+        self.update_game_state("first-player", first)
         do_again = True
         winner = None
         no_bets = True
+        self.update_game_state("no-bets", no_bets)
         second_player_bet = -1
         bid_amount = max(self.pool / 2, 5)
         raise_amount = bid_amount
@@ -169,12 +175,15 @@ class Game:
             if first_player_bet == Actions.RAISE:
                 no_bets = False
                 self.pool += first_player.ante(raise_amount)
+                self.update_game_state("pool-amount", self.pool)
+                self.update_game_state("no-bets", no_bets)
                 bid_amount = raise_amount
                 raise_amount *= 2
                 print("first player raised: ", bid_amount)
                 second_player_bet = self.get_bid(second_player, first_player, communal_cards, first_player_bet)
                 if second_player_bet == Actions.CALL:
                     self.pool += second_player.ante(bid_amount)
+                    self.update_game_state("pool-amount", self.pool)
                     print("second player called the raise\n")
                     do_again = False
                 elif second_player_bet == Actions.FOLD:
@@ -184,6 +193,7 @@ class Game:
                 elif second_player_bet == Actions.RAISE:
                     print("second player raised\n")
                     self.pool += second_player.ante(raise_amount)
+                    self.update_game_state("pool-amount", self.pool)
                     bid_amount = raise_amount
                     raise_amount *= 2
                     do_again = True
@@ -193,8 +203,10 @@ class Game:
                     second_player_bet = self.get_bid(second_player, first_player, communal_cards, first_player_bet)
                     if second_player_bet == Actions.RAISE:
                         no_bets = False
+                        self.update_game_state("no-bets", no_bets)
                         print("second player raised\n")
                         self.pool += second_player.ante(raise_amount)
+                        self.update_game_state("pool-amount", self.pool)
                         bid_amount = raise_amount
                         raise_amount *= 2
                         do_again = True
@@ -205,6 +217,7 @@ class Game:
                             print("second player called\n")
                         if not no_bets:
                             self.pool += second_player.ante(bid_amount)
+                            self.update_game_state("pool-amount", self.pool)
                         do_again = False
                     elif second_player_bet == Actions.FOLD:
                         print("second player folded\n")
@@ -212,6 +225,7 @@ class Game:
                         do_again = False
                 else:
                     self.pool += first_player.ante(bid_amount)
+                    self.update_game_state("pool-amount", self.pool)
                     print("first player called\n")
                     do_again = False
                 
@@ -222,10 +236,10 @@ class Game:
         return winner
 
     #We need to get the bids 1 at a time
-    @staticmethod
-    def get_bid(player, opponent, communal_cards, opponent_bet):
-        player_game_state = (Actions, communal_cards, opponent_bet, opponent, BiddingRound(len(communal_cards)))
-        player_bet = player.get_bid(player_game_state)
+    def get_bid(self, player, opponent, communal_cards, opponent_bet):
+        game_state = self.game_state.copy()
+        game_state['opponent-actions'] = opponent.actions
+        player_bet = player.get_bid(game_state)
         return player_bet
 
     @staticmethod
@@ -249,43 +263,6 @@ class Game:
         print("Human player's winnings: {}, per hand: {}".format(self.human_player.winnings,
                                                                  self.human_player.winnings / self.hands_played))
         return self.computer_player.winnings / self.hands_played, self.human_player.winnings / self.hands_played
-
-
-class BiddingRound(Enum):
-    PRE_FLOP = 0
-    ON_FLOP = 3
-    ON_TURN = 4
-    ON_RIVER = 5
-
-
-class HandType(Enum):
-    NONE = 0
-    PAIR = 1
-    TWO_PAIR = 2
-    THREES = 3
-    STRAIGHT = 4
-    FLUSH = 5
-    FULL_HOUSE = 6
-    FOURS = 7
-    STRAIGHT_FLUSH = 8
-    ROYAL_FLUSH = 9
-
-
-class Hand:
-    def __init__(self, cards):
-        self.cards = cards
-
-    def get_hand_type(self):
-        if len(self.cards) == 5:
-            five_cards = itertools.permutations(self.cards, 5)
-            hands = [Hand(cards) for cards in five_cards]
-            best_hand_amt = float('-inf')
-            for hand in hands:
-                hand_type = hand.get_hand_type()
-                if hand_type > best_hand_amt:
-                    best_hand_amt = hand_type
-
-    # def __lt__(self, other):
 
 
 def main():

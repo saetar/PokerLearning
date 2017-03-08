@@ -53,6 +53,7 @@ class Game:
             opponent_player = first_player
         else:
             print("rip")
+        self.deck = Deck()
         self.deck.shuffle()
         communal_cards = set()
         winner = None
@@ -115,12 +116,13 @@ class Game:
         """  Evaluate hands at end  """
         first_player_score = self.evalHand(first_player.get_hand(), list(communal_cards))
         second_player_score =  self.evalHand(second_player.get_hand(), list(communal_cards))
-        if first_player_score < second_player_score:
+        #LOW SCORE WINS IN DEUCES
+        if first_player_score > second_player_score:
             print("second player won a pot of: ",self.pool)
             print("they had")
             second_player.print_hand()
             second_player.won(self.pool)
-        elif first_player_score > second_player_score:
+        elif first_player_score < second_player_score:
             print("first player won a pot of: ",self.pool)
             print("they had")
             first_player.print_hand()
@@ -178,13 +180,14 @@ class Game:
                         else:        
                             print("second player called\n")
                         if not no_bets:
-                            self.pool += first_player.ante(bid_amount)
+                            self.pool += second_player.ante(bid_amount)
                         do_again = False
                     elif second_player_bet == Actions.FOLD:
                         print("second player folded\n")
                         winner = first_player
                         do_again = False
                 else:
+                    self.pool += first_player.ante(2 * bid_amount)
                     print("first player called\n")
                     do_again = False
                 

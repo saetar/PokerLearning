@@ -46,7 +46,9 @@ class Player:
                 return actions.CALL
             return actions.RAISE
         else:  # Random action for now
-            if(other_player_action == 2 or not communal_cards):
+            #If they raised or we are preflop and they didn't check to us in the big blind we can fold. 
+            #Otherwise we should never fold because we don't have to put in more chips
+            if((other_player_action == 2) or (not other_player_action == 1 and not communal_cards)):
                 action_choices = [actions.RAISE, actions.CALL, actions.FOLD]
                 action = random.choice(action_choices)
             else:

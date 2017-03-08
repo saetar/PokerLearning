@@ -27,13 +27,12 @@ class Player:
         self.hand = set()
 
     def get_bid(self, game_state, other_bet=None):
-<<<<<<< HEAD
-        (actions, communal_cards, other_player_stats) = game_state
-=======
+
+        #(actions, communal_cards, other_player_stats) = game_state
         (actions, communal_cards, other_player_action, other_player_stats) = game_state
         if other_bet is not None:
             print(other_bet)
->>>>>>> fa2599af8887dee581d62dbbd7f865194c57c1b1
+
         if not self.is_computer:
             communal_cards_strs = [str(card) for card in communal_cards]
             ccs = ", ".join(communal_cards_strs)
@@ -55,3 +54,8 @@ class Player:
                 action = random.choice(action_choices)
                 
             return action
+
+    def print_hand(self):
+        hand_cards_str = [str(card) for card in self.hand]
+        hcs = ", ".join(hand_cards_str)
+        print(hcs)

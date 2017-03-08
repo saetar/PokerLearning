@@ -2,8 +2,8 @@ import itertools
 from enum import Enum
 from player import Player
 from deck import Deck
-
-
+from deuces import Card
+from deuces import Evaluator
 class Actions(Enum):
     FOLD = 0
     CALL = 1
@@ -53,7 +53,6 @@ class Game:
             opponent_player = first_player
         else:
             print("rip")
-            
         self.deck.shuffle()
         communal_cards = set()
         winner = None
@@ -64,7 +63,6 @@ class Game:
         second_player.add_card_to_hand(self.deck.pop())
         first_player.add_card_to_hand(self.deck.pop())
         second_player.add_card_to_hand(self.deck.pop())
-
         """  initialize pool and ante up players  """
         self.pool = 0
         self.pool += first_player.ante(bid_amount / 2.0)
@@ -115,13 +113,20 @@ class Game:
             return
 
         """  Evaluate hands at end  """
-        first_player_cards = Hand(communal_cards.union(first_player.get_hand()))
-        second_player_cards = Hand(communal_cards.union(second_player.get_hand()))
-        if first_player_cards < second_player_cards:
+        first_player_score = self.evalHand(first_player.get_hand(), list(communal_cards))
+        second_player_score =  self.evalHand(second_player.get_hand(), list(communal_cards))
+        if first_player_score < second_player_score:
+            print("second player won a pot of: ",self.pool)
+            print("they had")
+            second_player.print_hand()
             second_player.won(self.pool)
-        elif first_player > second_player_cards:
+        elif first_player_score > second_player_score:
+            print("first player won a pot of: ",self.pool)
+            print("they had")
+            first_player.print_hand()
             first_player.won(self.pool)
         else:
+            print("split pot!")
             first_player.won(self.pool / 2.0)
             second_player.won(self.pool / 2.0)
 
@@ -204,6 +209,24 @@ class Game:
         player_game_state = (Actions, communal_cards, opponent_bet, opponent)
         player_bet = player.get_bid(player_game_state)
         return player_bet
+
+    @staticmethod
+    def evalHand(hand, communal_cards):
+        if communal_cards:
+            communal_cards_strs = [str(card) for card in communal_cards]
+        hand_cards_str = [str(card) for card in hand]
+        board = []
+        handList = []
+        if communal_cards:
+            for card in communal_cards_strs:
+                board.append(Card.new(card))
+        for card in hand_cards_str:
+            handList.append(Card.new(card))
+        #board = [Card.new('Ah'), Card.new('Kd'),Card.new('Jc')]
+        #hand = [Card.new('Qs'),Card.new('Th')]
+        evaluator = Evaluator()
+        return evaluator.evaluate(board, handList)
+
 
 
 class HandType(Enum):

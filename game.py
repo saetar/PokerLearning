@@ -145,7 +145,7 @@ class Game:
                 no_bets = False
                 self.pool += first_player.ante(bid_amount)
                 print("first player raised: ",bid_amount,"\n")
-                second_player_bet = self.get_bid(second_player, first_player, communal_cards,first_player_bet)
+                second_player_bet = self.get_bid(second_player, first_player, communal_cards, first_player_bet)
                 if second_player_bet == Actions.CALL:
                     self.pool += second_player.ante(bid_amount)
                     print("second player called the raise\n")

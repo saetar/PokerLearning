@@ -26,11 +26,9 @@ class Player:
 
     def won(self, total_chips, pool_amt): #fuck this hsit
         self.winnings += self.chips - total_chips + pool_amt
-        print("You won! Your winnings are now: {}".format(self.winnings))
 
     def loss(self, total_chips, pool_amt):
         self.winnings += self.chips - total_chips
-        print("You lost! Your winnings are now: {}".format(self.winnings))
 
     def clear_hand(self):
         self.hand = set()
@@ -53,7 +51,7 @@ class Player:
             # Random action for now
             # If they raised or we are preflop and they didn't check to us in the big blind we can fold.
             # Otherwise we should never fold because we don't have to put in more chips
-            if (other_player_action == 2) or (not other_player_action == 1 and not communal_cards):
+            if (other_player_action == actions.RAISE) or (other_player_action != actions.CALL and not communal_cards):
                 action_choices = [actions.RAISE, actions.CALL, actions.FOLD]
                 action = random.choice(action_choices)
             else:

@@ -17,6 +17,7 @@ class Game:
         self.deck = Deck()
         self.pool = 0
         self.chips = chips
+        self.hands_played = 0
         print("You start with:", chips, "chips")
 
     @staticmethod
@@ -33,6 +34,8 @@ class Game:
             first_player = self.computer_player if counter < 0 else self.human_player
             second_player = self.human_player if counter < 0 else self.computer_player
             self.play_hand(first_player, second_player, bid_amount)
+            self.hands_played += 1
+            self.get_players_winnings()
             print("-------------- NEW HAND -------------")
             counter *= -1
 
@@ -187,7 +190,7 @@ class Game:
             elif first_player_bet == Actions.CALL:
                 if no_bets:
                     print("first player checked\n")
-                    second_player_bet = self.get_bid(second_player, first_player, communal_cards,first_player_bet)
+                    second_player_bet = self.get_bid(second_player, first_player, communal_cards, first_player_bet)
                     if second_player_bet == Actions.RAISE:
                         no_bets = False
                         print("second player raised\n")
@@ -239,6 +242,13 @@ class Game:
             handList.append(Card.new(card))
         evaluator = Evaluator()
         return evaluator.evaluate(board, handList)
+
+    def get_players_winnings(self):
+        print("Computer player's winnings: {}, per hand: {}".format(self.computer_player.winnings,
+                                                                    self.computer_player.winnings / self.hands_played))
+        print("Human player's winnings: {}, per hand: {}".format(self.human_player.winnings,
+                                                                 self.human_player.winnings / self.hands_played))
+        return self.computer_player.winnings / self.hands_played, self.human_player.winnings / self.hands_played
 
 
 class BiddingRound(Enum):

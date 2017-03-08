@@ -6,9 +6,13 @@ class Player:
         self.hand = set()
         self.chips = chips
         self.is_computer = is_computer
+        self.winnings = 0
 
     def add_card_to_hand(self, card):
         self.hand.add(card)
+
+    def reset_chips(self, chip_amount):
+        self.chips = chip_amount
 
     def get_hand(self):
         return self.hand
@@ -20,8 +24,13 @@ class Player:
         self.chips -= value
         return value
 
-    def won(self, pool_amt):
-        self.chips += pool_amt
+    def won(self, total_chips, pool_amt): #fuck this hsit
+        self.winnings += self.chips - total_chips + pool_amt
+        print("You won! Your winnings are now: {}".format(self.winnings))
+
+    def loss(self, total_chips, pool_amt):
+        self.winnings += self.chips - total_chips
+        print("You lost! Your winnings are now: {}".format(self.winnings))
 
     def clear_hand(self):
         self.hand = set()

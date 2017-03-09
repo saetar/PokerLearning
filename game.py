@@ -31,8 +31,6 @@ class Game:
         while not self.human_player.is_out() and not self.computer_player.is_out():
             first_player = self.computer_player if counter < 0 else self.human_player
             second_player = self.human_player if counter < 0 else self.computer_player
-            self.game_state["human-player-stats"] = self.human_player.get_stats()
-            self.game_state["computer-player-stats"] = self.computer_player.get_stats()
             self.play_hand(first_player, second_player, bid_amount)
             self.hands_played += 1
             self.get_players_winnings()
@@ -238,7 +236,14 @@ class Game:
     #We need to get the bids 1 at a time
     def get_bid(self, player, opponent, communal_cards, opponent_bet):
         game_state = self.game_state.copy()
-        game_state['opponent-actions'] = opponent.actions
+        opponent_stats = opponent.get_stats()
+        for key, value in opponent_stats.items():
+            game_state["opponent-{}".format(key)] = value
+        player_stats = player.get_stats()
+        for key, value in player_stats.items():
+            game_state["player-{}".format(key)] = value
+        if len(communal_cards) > 0:
+            game_state["player-total-score"] = Game.evalHand(player.get_hand(), communal_cards)
         player_bet = player.get_bid(game_state)
         return player_bet
 

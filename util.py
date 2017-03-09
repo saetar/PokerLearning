@@ -1,4 +1,6 @@
 from enum import Enum
+from numpy import sign
+
 
 class Counter(dict):
     def __getitem__(self, idx):
@@ -9,8 +11,9 @@ class Counter(dict):
         for key in keys:
             self[key] += count
 
-    def argMax(self):
-        if len(self.keys()) == 0: return None
+    def arg_max(self):
+        if len(self.keys()) == 0:
+            return None
         all = self.items()
         values = [x[1] for x in all]
         maxIndex = values.index(max(values))
@@ -18,7 +21,7 @@ class Counter(dict):
 
     def sortedKeys(self):
         sortedItems = self.items()
-        compare = lambda x, y:  sign(y[1] - x[1])
+        compare = lambda x, y: sign(y[1] - x[1])
         sortedItems.sort(cmp=compare)
         return [x[0] for x in sortedItems]
 
@@ -39,11 +42,11 @@ class Counter(dict):
     def copy(self):
         return Counter(dict.copy(self))
 
-    def __mul__(self, y ):
+    def __mul__(self, y):
         sum = 0
         x = self
         if len(x) > len(y):
-            x,y = y,x
+            x, y = y, x
         for key in x:
             if key not in y:
                 continue
@@ -54,7 +57,7 @@ class Counter(dict):
         for key, value in y.items():
             self[key] += value
 
-    def __add__( self, y ):
+    def __add__(self, y):
         addend = Counter()
         for key in self:
             if key in y:
@@ -67,7 +70,7 @@ class Counter(dict):
             addend[key] = y[key]
         return addend
 
-    def __sub__( self, y ):
+    def __sub__(self, y):
         addend = Counter()
         for key in self:
             if key in y:
@@ -95,7 +98,6 @@ class Actions(Enum):
 
 
 class PreflopEvaluator:
-
     @staticmethod
     def get_range_score(hand):
         """

@@ -58,7 +58,7 @@ class Game:
             print("rip")
         self.deck = Deck()
         self.deck.shuffle()
-        communal_cards = set()
+        communal_cards = []
         winner = None
         first_player.clear_hand()
         second_player.clear_hand()
@@ -86,11 +86,11 @@ class Game:
 
         """  Add 3 cards to communal cards, with burns  """
         self.deck.pop()
-        communal_cards.add(self.deck.pop())
+        communal_cards.append(self.deck.pop())
         self.deck.pop()
-        communal_cards.add(self.deck.pop())
+        communal_cards.append(self.deck.pop())
         self.deck.pop()
-        communal_cards.add(self.deck.pop())
+        communal_cards.append(self.deck.pop())
 
         """  Go through a 2nd round of betting  """
         winner = self.do_betting_round(first_player, second_player, communal_cards)
@@ -103,7 +103,7 @@ class Game:
 
         """  Add one card to communal with burn  """
         self.deck.pop()
-        communal_cards.add(self.deck.pop())
+        communal_cards.append(self.deck.pop())
 
         """  Go through a 3nd round of betting  """
         winner = self.do_betting_round(first_player, second_player, communal_cards)
@@ -116,7 +116,7 @@ class Game:
 
         """  Add one card to communal with burn  """
         self.deck.pop()
-        communal_cards.add(self.deck.pop())
+        communal_cards.append(self.deck.pop())
 
         """  Go through a 3nd round of betting  """
         winner = self.do_betting_round(first_player, second_player, communal_cards)

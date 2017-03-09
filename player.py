@@ -48,11 +48,13 @@ class Player:
             other_player_action = Actions.CALL
         action = None
         if not self.is_computer:
-            communal_cards_strs = [card.to_str() for card in communal_cards]
-            ccs = ", ".join(communal_cards_strs)
+            commuanl_cards_strs = " " * 20 + "*" * 19 + "\n"
+            commuanl_cards_strs += " " * 20
+            commuanl_cards_strs += "  ".join(["{}".format(card.to_str()) for card in communal_cards])
+            commuanl_cards_strs += "\n" + " " * 20 + "*" * 19 + "\n"
             hand_cards_str = [card.to_str() for card in self.hand]
             hcs = ", ".join(hand_cards_str)
-            print("\nThe communal cards are: {}, and your hand is {}".format(ccs, hcs))
+            print("\n{}\nYour hand is {}".format(commuanl_cards_strs, hcs))
             bid = input("Would you like to [f]old, [c]all, or [r]aise?\n")
             if bid[0] == 'f':
                 action = Actions.FOLD

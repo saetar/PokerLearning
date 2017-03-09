@@ -2,6 +2,7 @@ import random
 from util import Counter
 from util import Actions
 from util import PreflopEvaluator
+import pickle
 
 class Player:
     def __init__(self, chips, is_computer):
@@ -11,6 +12,7 @@ class Player:
         self.winnings = 0
         self.stats = Counter()
         self.actions = []
+        self.q_learning_weights = self.load_q_learning_weights()
 
     def add_card_to_hand(self, card):
         self.hand.append(card)
@@ -113,3 +115,14 @@ class Player:
         hand_cards_str = [card.to_str() for card in self.hand]
         hcs = ", ".join(hand_cards_str)
         print(hcs)
+
+    def load_q_learning_weights(self):
+        try:
+            weights = pickle.load(open("q_learning_weights.p", "rb"))
+        except:
+            weights = Counter()
+        return weights
+
+    def store_q_learning_weights(self):
+        weights = self.q_learning_weights
+        pickle.dump(weights, open("q_learning_weights.p", "wb"))

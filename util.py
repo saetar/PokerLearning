@@ -92,3 +92,42 @@ class Actions(Enum):
     FOLD = 0
     CALL = 1
     RAISE = 2
+
+
+class PreflopEvaluator:
+
+    @staticmethod
+    def get_range_score(hand):
+        """
+        evaluates the range of two cards in preflop hand.
+        Cards that are closer together are better, and a max range of 5, so this
+        returns 6 - diff(card values) or 0 if they are greater than 5 apart.
+        :param hand: list of two cards
+        :return:
+        """
+        return 6 - abs(hand[0].value - hand[1].value)
+
+    @staticmethod
+    def get_pair_score(hand):
+        """
+        :param hand: list of two cards
+        :return: returns 1 if pocket pairs else 0
+        """
+        return hand[0].value == hand[1].value
+
+    @staticmethod
+    def get_flush_score(hand):
+        """
+        :param hand: list of two cards
+        :return: returns 1 if same suit else 0
+        """
+        return hand[0].suit == hand[1].suit
+
+    @staticmethod
+    def evaluate_cards(hand):
+        card_stats = Counter()
+        hand = list(hand)
+        card_stats['range-score'] = PreflopEvaluator.get_range_score(hand)
+        card_stats['pair-score'] = PreflopEvaluator.get_pair_score(hand)
+        card_stats['flush-score'] = PreflopEvaluator.get_flush_score(hand)
+        return card_stats

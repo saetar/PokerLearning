@@ -13,6 +13,8 @@ class Player:
         self.stats = Counter()
         self.actions = []
         self.q_learning_weights = self.load_q_learning_weights()
+        self.hand_features = []  # holds list of (game_state,action) pairs for training once we know whether we won or not
+        self.learning_rate = 0.5
 
     def add_card_to_hand(self, card):
         self.hand.append(card)
@@ -31,10 +33,24 @@ class Player:
         return value
 
     def won(self, total_chips, pool_amt): #fuck this hsit
-        self.winnings += self.chips - total_chips + pool_amt
+        this_winnings = self.chips - total_chips + pool_amt
+        self.winnings += this_winnings
+        self.update_weights(this_winnings)
 
     def loss(self, total_chips, pool_amt):
-        self.winnings += self.chips - total_chips
+        this_winnings = self.chips - total_chips
+        self.winnings += this_winnings
+        self.update_weights(this_winnings)
+
+    def update_weights(self, winnings):
+        weights = self.q_learning_weights
+        """  gotta train them weights  """
+        for state, action in self.hand_features:
+            difference = winnings - self.get_q_value(state, action)
+            q_learning_dict = self.make_q_learning_dict_from_state(state)
+            for feature in q_learning_dict:
+                weights[feature] += self.learning_rate * difference * q_learning_dict[feature]
+        self.hand_features = []
 
     def clear_hand(self):
         self.hand = []
@@ -57,6 +73,25 @@ class Player:
                     for key, value in preflop_scores.items():
                         q_learning_dict["hand-{}".format(key)] = value
         return q_learning_dict
+
+    def get_q_value(self, game_state, action):
+        q_learning_dict = self.make_q_learning_dict_from_state(game_state)
+        score = 0.0
+        for key in q_learning_dict:
+            score += q_learning_dict[key] * self.q_learning_weights[key]
+        return score
+
+    def get_q_star_action(self, game_state):
+        optimal_action = []
+        max_score = float("-inf")
+        for action in Actions:
+            score = self.get_q_value(game_state, action)
+            if score > max_score:
+                optimal_action = [action]
+                max_score = score
+            elif score == max_score:
+                optimal_action.append(action)
+        return random.choice(optimal_action)
 
     @staticmethod
     def print_communal_cards(communal_cards):
@@ -85,27 +120,11 @@ class Player:
         return action
 
     def get_computer_bid(self, game_state):
-        q_learning_dict = self.make_q_learning_dict_from_state(game_state)
-        print("QLEARNING: {}".format(q_learning_dict))
-        communal_cards = game_state['communal-cards']
-        other_player_action = None
-        if game_state['no-bets'] is False:
-            other_player_action = Actions.RAISE
-        elif game_state['first-player'] != self:
-            other_player_action = Actions.CALL
-        # Random action for now
-        # If they raised or we are preflop and they didn't check to us in the big blind we can fold.
-        # Otherwise we should never fold because we don't have to put in more chips
-        if (other_player_action == Actions.RAISE) or (other_player_action != Actions.CALL and not communal_cards):
-            action_choices = [Actions.RAISE, Actions.CALL, Actions.FOLD]
-            action = random.choice(action_choices)
-        else:
-            action_choices = [Actions.RAISE, Actions.CALL]
-            action = random.choice(action_choices)
+        action = self.get_q_star_action(game_state)
         self.actions.append(action)
         return action
 
-    def get_bid(self, game_state):
+    def get_bid(self, game_state, bid_amount, raise_amount):
         if self.is_computer:
             return self.get_computer_bid(game_state)
         else:

@@ -9,7 +9,7 @@ from util import Counter
 
 class Game:
     def __init__(self, chips):
-        self.human_player = Player(chips, False)
+        self.human_player = Player(chips, True)
         self.computer_player = Player(chips, True)
         self.deck = Deck()
         self.pool = 0
@@ -169,7 +169,8 @@ class Game:
         bid_amount = max(self.pool / 2, 5)
         raise_amount = bid_amount
         while do_again:
-            first_player_bet = self.get_bid(first_player, second_player, communal_cards, second_player_bet)
+            first_player_bet = self.get_bid(first_player, second_player, communal_cards,
+                                            second_player_bet, bid_amount, raise_amount)
             if first_player_bet == Actions.RAISE:
                 no_bets = False
                 self.pool += first_player.ante(raise_amount)
@@ -178,7 +179,8 @@ class Game:
                 bid_amount = raise_amount
                 raise_amount *= 2
                 print("first player raised: ", bid_amount)
-                second_player_bet = self.get_bid(second_player, first_player, communal_cards, first_player_bet)
+                second_player_bet = self.get_bid(second_player, first_player, communal_cards, first_player_bet,
+                                                 bid_amount, raise_amount)
                 if second_player_bet == Actions.CALL:
                     self.pool += second_player.ante(bid_amount)
                     self.update_game_state("pool-amount", self.pool)
@@ -198,7 +200,8 @@ class Game:
             elif first_player_bet == Actions.CALL:
                 if no_bets:
                     print("first player checked\n")
-                    second_player_bet = self.get_bid(second_player, first_player, communal_cards, first_player_bet)
+                    second_player_bet = self.get_bid(second_player, first_player, communal_cards, first_player_bet,
+                                                     bid_amount, raise_amount)
                     if second_player_bet == Actions.RAISE:
                         no_bets = False
                         self.update_game_state("no-bets", no_bets)
@@ -234,7 +237,7 @@ class Game:
         return winner
 
     #We need to get the bids 1 at a time
-    def get_bid(self, player, opponent, communal_cards, opponent_bet):
+    def get_bid(self, player, opponent, communal_cards, opponent_bet, bid_amount, raise_amount):
         game_state = self.game_state.copy()
         opponent_stats = opponent.get_stats()
         for key, value in opponent_stats.items():
@@ -244,7 +247,7 @@ class Game:
             game_state["player-{}".format(key)] = value
         if len(communal_cards) > 0:
             game_state["player-total-score"] = Game.evalHand(player.get_hand(), communal_cards)
-        player_bet = player.get_bid(game_state)
+        player_bet = player.get_bid(game_state, bid_amount, raise_amount)
         return player_bet
 
     @staticmethod

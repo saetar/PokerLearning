@@ -9,8 +9,8 @@ from util import BiddingRound
 
 class Game:
     def __init__(self, chips):
-        self.human_player = HumanPlayer(chips)
-        self.computer_player = HumanPlayer(chips)
+        self.human_player = QLearningPlayer(chips)
+        self.computer_player = QLearningPlayer(chips)
         self.deck = Deck()
         self.pool = 0
         self.chips = chips
@@ -33,6 +33,10 @@ class Game:
             first_player = self.computer_player if counter < 0 else self.human_player
             second_player = self.human_player if counter < 0 else self.computer_player
             self.play_hand(first_player, second_player, bid_amount)
+            if type(first_player) == QLearningPlayer:
+                first_player.store_q_learning_weights()
+            if type(second_player) == QLearningPlayer:
+                second_player.store_q_learning_weights()
             self.hands_played += 1
             self.get_players_winnings()
             print("-------------- NEW HAND -------------")

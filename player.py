@@ -13,7 +13,7 @@ class Player:
         self.stats = Counter()
         self.actions = []
         self.hand_features = []  # holds list of (game_state,action) pairs for training once we know whether we won or not
-        self.learning_rate = 0.5
+        self.learning_rate = 0.01
 
     def add_card_to_hand(self, card):
         self.hand.append(card)
@@ -41,6 +41,7 @@ class Player:
 
     def clear_hand(self):
         self.hand = []
+        self.hand_features = []
 
     def get_stats(self):
         if len(self.actions) > 0:
@@ -70,6 +71,7 @@ class Player:
         hand_cards_str = [card.to_str() for card in self.hand]
         hcs = ", ".join(hand_cards_str)
         print(hcs)
+
 
 class QLearningPlayer(Player):
     def __init__(self, chips):
@@ -138,11 +140,14 @@ class QLearningPlayer(Player):
             q_learning_dict = self.make_q_learning_dict_from_state(state)
             for feature in q_learning_dict:
                 weights[feature] += self.learning_rate * difference * q_learning_dict[feature]
+        self.q_learning_weights.divideAll(10)
         self.hand_features = []
 
     def get_bid(self, game_state, bid_amount, raise_amount):
         print("Computer cards:")
         self.print_hand()
+        action = self.get_q_star_action(game_state, bid_amount, raise_amount)
+        self.hand_features.append((game_state, action))
         return self.get_q_star_action(game_state, bid_amount, raise_amount)
 
     def load_q_learning_weights(self):

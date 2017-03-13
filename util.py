@@ -4,7 +4,7 @@ from numpy import sign
 
 class Counter(dict):
     def __getitem__(self, idx):
-        self.setdefault(idx, 0)
+        self.setdefault(idx, 0.0)
         return dict.__getitem__(self, idx)
 
     def incrementAll(self, keys, count):

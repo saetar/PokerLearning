@@ -1,5 +1,5 @@
 from util import Actions
-from player import HumanPlayer, QLearningPlayer, RandomPlayer
+from player import HumanPlayer, QLearningPlayer, RandomPlayer, TightPlayer, AggressivePlayer
 from deck import Deck
 from deuces import Card
 from deuces import Evaluator
@@ -175,7 +175,7 @@ class Game:
         second_player_bet = -1
         bid_amount = max(self.pool / 2, 5)
         raise_amount = bid_amount
-        while do_again and not self.all_in:
+        while do_again:
             first_player_bet = self.get_bid(first_player, second_player, communal_cards,
                                             second_player_bet, bid_amount, raise_amount)
             if first_player_bet == Actions.RAISE:

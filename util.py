@@ -1,5 +1,7 @@
 from enum import Enum
-from numpy import sign
+from deck import Deck
+from deuces import Card
+from deuces import Evaluator
 
 
 class Counter(dict):
@@ -88,8 +90,33 @@ class Actions(Enum):
     FOLD = 0
     CALL = 1
     RAISE = 2
+    
+"""
+Returns a value between 1 and 7462 for a 5 card poker hand out of 5, 6, or 7 cards
+"""
+def evalHand(hand, communal_cards):
+    if communal_cards:
+        communal_cards_strs = [str(card) for card in communal_cards]
+    hand_cards_str = [str(card) for card in hand]
+    board = []
+    handList = []
+    if communal_cards:
+        for card in communal_cards_strs:
+            board.append(Card.new(card))
+    for card in hand_cards_str:
+        handList.append(Card.new(card))
+    evaluator = Evaluator()
+    return evaluator.evaluate(board, handList)
 
-
+def get_rank(score):
+    evaluator = Evaluator()
+    rank = evaluator.get_rank_class(score)
+    print(evaluator.class_to_string(rank))
+    return rank
+                
+def percentHandStrength(score):
+    return score / float(7462)                          
+                                  
 class PreflopEvaluator:
     @staticmethod
     def get_range_score(hand):

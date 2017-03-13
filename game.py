@@ -9,8 +9,8 @@ from util import BiddingRound
 
 class Game:
     def __init__(self, chips):
-        self.human_player = HumanPlayer(chips)
-        self.computer_player = HumanPlayer(chips)
+        self.human_player = RandomPlayer(chips)
+        self.computer_player = QLearningPlayer(chips)
         self.deck = Deck()
         self.pool = 0
         self.chips = chips

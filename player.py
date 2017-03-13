@@ -214,10 +214,25 @@ class TightPlayer(Player):
                         features["hand-{}".format(key2)] = value2
                 else:
                     handScore = evalHand(self.hand, value)
+                    features["score"] = handScore
                     print("HandScore: ",handScore)
                     percentHandScore = percentHandStrength(handScore)
+                    features["percentScore"] = percentHandScore
                     print("percentHandScore: ",percentHandScore)
                     handRank = get_rank(handScore)
+                    preflop_scores = PreflopEvaluator.evaluate_cards(self.hand)
+                    flush_score = 0
+                    if handRank != 4:
+                        if preflop_scores['flush-score'] == 1:
+                            flush_score = 2
+                            for card in value:
+                                if self.hand[0].suit == card.suit:
+                                    flush_score += 1
+                        if (5-flush_score) <= (5 - len(value)):
+                            features["possible-flush"] = True
+
+                    for key2, value2 in preflop_scores.items():
+                        features["hand-{}".format(key2)] = value2
                    
                     
         return features
@@ -226,6 +241,65 @@ class TightPlayer(Player):
     def get_bid(self, game_state, bid_amount, raise_amount):
         features = self.get_features(game_state)
         actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
+        ace = False
+        for card in self.hand:
+            if card.value == 1:
+                ace = True
+        #pre flop
+        if features["score"] == 0:
+            if bid_amount < 10: #limp or call
+                #suited connectors
+                if features["hand-flush-score"] == 1 and features["hand-range-score"] > 3:
+                    return Actions.CALL
+                #pairs
+                elif features["hand-pair-score"] == 1:
+                    if self.hand[0].value > 9:
+                        return Actions.RAISE
+                    else:
+                        return Actions.CALL
+                #Aces and Kings
+                elif max(self.hand[0].value, self.hand[1].value) > 12 or ace:
+                    if features["hand-flush-score"] == 1:
+                        return Actions.RAISE
+                    elif ace and max(self.hand[0].value, self.hand[1].value) > 7:
+                        return Actions.RAISE
+                    elif (not ace) and min(self.hand[0].value, self.hand[1].value) > 9 :
+                        return Actions.RAISE
+                    else:
+                        return Actions.CALL
+                elif max(self.hand[0].value, self.hand[1].value) > 8:
+                    if features["hand-range-score"] > 3:
+                        return Actions.CALL
+                    else:
+                        return Actions.FOLD
+                else:
+                    return Actions.FOLD
+            #they reraised
+            else:
+                if ace and features["hand-pair-score"] == 1: #If we have pocket aces raise
+                    return Actions.RAISE
+                if ace:
+                    if self.hand[0].value + self.hand[1].value > 7: #If we have a decent kicker call
+                        return Actions.CALL
+                elif self.hand[0].value + self.hand[1].value > 20: #If our cards are high
+                    if features["hand-pair-score"] == 1 and self.hand[0].value > 11: #if we have a pair
+                        return Actions.RAISE
+                    else:
+                        return Actions.CALL
+                else:
+                    if random.random() > .75: #most of the time fold but sometimes call so we dont get exploited
+                        return Actions.CALL
+                    else:
+                        return Actions.FOLD
+            return Actions.Fold #all unconsidered cases fold
+
+        #post flop
+        else:
+            if features["percentScore"] < .3 and features["percentScore"]:
+                return actions.RAISE
+            #if features["percentScore"] > .9
+
+
         print(actions)
         return random.choice(actions)
       

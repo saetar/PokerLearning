@@ -84,13 +84,6 @@ class Counter(dict):
         return addend
 
 
-class BiddingRound(Enum):
-    PRE_FLOP = 0
-    ON_FLOP = 3
-    ON_TURN = 4
-    ON_RIVER = 5
-
-
 class Actions(Enum):
     FOLD = 0
     CALL = 1
@@ -133,3 +126,9 @@ class PreflopEvaluator:
         card_stats['pair-score'] = PreflopEvaluator.get_pair_score(hand)
         card_stats['flush-score'] = PreflopEvaluator.get_flush_score(hand)
         return card_stats
+
+
+class BiddingRound(Enum):
+    PREFLOP = 0
+    POST_FLOP = 1
+    SHOWDOWN = 2

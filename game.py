@@ -1,21 +1,22 @@
 from util import Actions
-from player import Player
+from player import HumanPlayer, QLearningPlayer, RandomPlayer
 from deck import Deck
 from deuces import Card
 from deuces import Evaluator
 from util import Counter
-
+from util import BiddingRound
 
 
 class Game:
     def __init__(self, chips):
-        self.human_player = Player(chips, True)
-        self.computer_player = Player(chips, True)
+        self.human_player = HumanPlayer(chips)
+        self.computer_player = QLearningPlayer(chips)
         self.deck = Deck()
         self.pool = 0
         self.chips = chips
         self.hands_played = 0
         self.game_state = Counter()
+        self.all_in = False
         print("You start with:", chips, "chips")
 
     @staticmethod
@@ -68,20 +69,20 @@ class Game:
         """  initialize player chip amount  """
         first_player.reset_chips(self.chips)
         second_player.reset_chips(self.chips)
+        self.all_in = False
         """  initialize pool and ante up players  """
         self.pool = 0
         self.pool += first_player.ante(bid_amount / 2.0)
         self.pool += second_player.ante(bid_amount)
         print("The pot starts at: ", self.pool)
         """  Go through a round of betting  """
-        winner = self.do_betting_round(first_player, second_player, communal_cards)
+        winner = self.do_betting_round(first_player, second_player, communal_cards, BiddingRound.PREFLOP)
         print("The pot preflop is: ", self.pool)
         if winner is not None:
             loser = first_player if first_player is not winner else second_player
             winner.won(self.chips, self.pool)
             loser.loss(self.chips, self.pool)
             return
-
         """  Add 3 cards to communal cards, with burns  """
         self.deck.pop()
         communal_cards.append(self.deck.pop())
@@ -89,9 +90,9 @@ class Game:
         communal_cards.append(self.deck.pop())
         self.deck.pop()
         communal_cards.append(self.deck.pop())
-
-        """  Go through a 2nd round of betting  """
-        winner = self.do_betting_round(first_player, second_player, communal_cards)
+        if not self.all_in:
+            """  Go through a 2nd round of betting if not all in  """
+            winner = self.do_betting_round(first_player, second_player, communal_cards, BiddingRound.POST_FLOP)
         print("The pot after the flop is: ", self.pool)
         if winner:
             loser = first_player if first_player is not winner else second_player
@@ -102,9 +103,9 @@ class Game:
         """  Add one card to communal with burn  """
         self.deck.pop()
         communal_cards.append(self.deck.pop())
-
-        """  Go through a 3nd round of betting  """
-        winner = self.do_betting_round(first_player, second_player, communal_cards)
+        if not self.all_in:
+            """  Go through a 3nd round of betting  """
+            winner = self.do_betting_round(first_player, second_player, communal_cards, BiddingRound.POST_FLOP)
         print("The pot after the turn is: ", self.pool)
         if winner:
             loser = first_player if first_player is not winner else second_player
@@ -115,9 +116,9 @@ class Game:
         """  Add one card to communal with burn  """
         self.deck.pop()
         communal_cards.append(self.deck.pop())
-
-        """  Go through a 3nd round of betting  """
-        winner = self.do_betting_round(first_player, second_player, communal_cards)
+        if not self.all_in:
+            """  Go through a 4th round of betting  """
+            winner = self.do_betting_round(first_player, second_player, communal_cards, BiddingRound.PREFLOP)
         print("The pot after the river is: ", self.pool)
         if winner:
             loser = first_player if first_player is not winner else second_player
@@ -149,8 +150,9 @@ class Game:
     def update_game_state(self, key, value):
         self.game_state[key] = value
 
-    def do_betting_round(self, first_player, second_player, communal_cards):
+    def do_betting_round(self, first_player, second_player, communal_cards, bidding_round):
         """
+        :param bidding_round: the round of bidding
         :param first_player: first player in rotation
         :param second_player: second player in rotation
         :param bid_amount: amount each bid is worth
@@ -161,6 +163,7 @@ class Game:
         self.update_game_state("communal-cards", communal_cards)
         first = self.computer_player if first_player == self.computer_player else self.human_player
         self.update_game_state("first-player", first)
+        self.update_game_state("betting-round", bidding_round)
         do_again = True
         winner = None
         no_bets = True
@@ -172,6 +175,10 @@ class Game:
             first_player_bet = self.get_bid(first_player, second_player, communal_cards,
                                             second_player_bet, bid_amount, raise_amount)
             if first_player_bet == Actions.RAISE:
+                if raise_amount > first_player.chips:
+                    self.all_in = True
+                    raise_amount = first_player.chips
+                    self.update_game_state("all-in", True)
                 no_bets = False
                 self.pool += first_player.ante(raise_amount)
                 self.update_game_state("pool-amount", self.pool)
@@ -191,6 +198,10 @@ class Game:
                     print("second player folded\n")
                     do_again = False
                 elif second_player_bet == Actions.RAISE:
+                    if raise_amount > second_player.chips:
+                        self.all_in = True
+                        raise_amount = second_player.chips
+                        self.update_game_state("all-in", True)
                     print("second player raised\n")
                     self.pool += second_player.ante(raise_amount)
                     self.update_game_state("pool-amount", self.pool)
@@ -203,6 +214,10 @@ class Game:
                     second_player_bet = self.get_bid(second_player, first_player, communal_cards, first_player_bet,
                                                      bid_amount, raise_amount)
                     if second_player_bet == Actions.RAISE:
+                        if raise_amount > second_player.chips:
+                            self.all_in = True
+                            raise_amount = second_player.chips
+                            self.update_game_state("all-in", True)
                         no_bets = False
                         self.update_game_state("no-bets", no_bets)
                         print("second player raised\n")

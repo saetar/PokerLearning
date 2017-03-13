@@ -4,6 +4,7 @@ from util import Actions
 from util import PreflopEvaluator
 import pickle
 
+
 class Player:
     def __init__(self, chips):
         self.hand = []
@@ -49,7 +50,7 @@ class Player:
         return self.stats
 
     def get_legal_actions(self, game_state, bid_amount, raise_amount):
-        if self.chips == 0:
+        if self.chips <= 0 or raise_amount > self.chips:
             return [Actions.FOLD, Actions.CALL]
         else:
             return Actions
@@ -140,6 +141,8 @@ class QLearningPlayer(Player):
         self.hand_features = []
 
     def get_bid(self, game_state, bid_amount, raise_amount):
+        print("Computer cards:")
+        self.print_hand()
         return self.get_q_star_action(game_state, bid_amount, raise_amount)
 
     def load_q_learning_weights(self):
@@ -158,14 +161,18 @@ class HumanPlayer(Player):
     def __init__(self, chips):
         super().__init__(chips)
 
-    def get_human_bid(self, game_state):
+    def get_human_bid(self, game_state, bid_amount, raise_amount):
         print(game_state)
         communal_cards = game_state['communal-cards']
         action = None
         Player.print_communal_cards(communal_cards)
         hand_cards_str = [card.to_str() for card in self.hand]
         hcs = ", ".join(hand_cards_str)
+        print("The pot is now: {}".format(game_state["pool-amount"]))
+        print("The raise amount is {} and the call amount is {}".format(raise_amount, bid_amount))
+        print("You have {} chips".format(self.chips))
         print("Your hand is {}".format(hcs))
+        print("Your legal actions are: {}".format(self.get_legal_actions(game_state, bid_amount, raise_amount)))
         bid = input("Would you like to [f]old, [c]all, or [r]aise?\n")
         if bid[0] == 'f':
             action = Actions.FOLD
@@ -177,7 +184,7 @@ class HumanPlayer(Player):
         return action
 
     def get_bid(self, game_state, bid_amount, raise_amount):
-        return self.get_human_bid(game_state)
+        return self.get_human_bid(game_state, bid_amount, raise_amount)
 
 
 class RandomPlayer(Player):

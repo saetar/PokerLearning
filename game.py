@@ -10,7 +10,7 @@ from util import BiddingRound
 class Game:
     def __init__(self, chips):
         self.human_player = HumanPlayer(chips)
-        self.computer_player = QLearningPlayer(chips)
+        self.computer_player = HumanPlayer(chips)
         self.deck = Deck()
         self.pool = 0
         self.chips = chips
@@ -171,7 +171,7 @@ class Game:
         second_player_bet = -1
         bid_amount = max(self.pool / 2, 5)
         raise_amount = bid_amount
-        while do_again:
+        while do_again and not self.all_in:
             first_player_bet = self.get_bid(first_player, second_player, communal_cards,
                                             second_player_bet, bid_amount, raise_amount)
             if first_player_bet == Actions.RAISE:

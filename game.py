@@ -9,15 +9,14 @@ from util import BiddingRound
 
 class Game:
     def __init__(self, chips):
-        self.human_player = QLearningPlayer(chips)
-        self.computer_player = QLearningPlayer(chips)
+        self.human_player = HumanPlayer(chips)
+        self.computer_player = HumanPlayer(chips)
         self.deck = Deck()
         self.pool = 0
         self.chips = chips
         self.hands_played = 0
         self.game_state = Counter()
         self.all_in = False
-        print("You start with:", chips, "chips")
 
     @staticmethod
     def get_actions():
@@ -131,6 +130,10 @@ class Game:
             return
 
         """  Evaluate hands at end  """
+        community_cards_strs = [str(card) for card in communal_cards]
+        print("*" * 50)
+        print(", ".join(community_cards_strs))
+        print("*" * 50)
         first_player_score = self.evalHand(first_player.get_hand(), list(communal_cards))
         second_player_score = self.evalHand(second_player.get_hand(), list(communal_cards))
         # LOW SCORE WINS IN DEUCES
@@ -168,6 +171,7 @@ class Game:
         first = self.computer_player if first_player == self.computer_player else self.human_player
         self.update_game_state("first-player", first)
         self.update_game_state("betting-round", bidding_round)
+        self.update_game_state("pool-amount", self.pool)
         do_again = True
         winner = None
         no_bets = True
@@ -175,7 +179,7 @@ class Game:
         second_player_bet = -1
         bid_amount = max(self.pool / 2, 5)
         raise_amount = bid_amount
-        while do_again:
+        while do_again and not self.all_in:
             first_player_bet = self.get_bid(first_player, second_player, communal_cards,
                                             second_player_bet, bid_amount, raise_amount)
             if first_player_bet == Actions.RAISE:
@@ -214,6 +218,9 @@ class Game:
                     do_again = True
             elif first_player_bet == Actions.CALL:
                 if no_bets:
+                    if self.game_state["betting-round"] == BiddingRound.PREFLOP:
+                        self.pool += first_player.ante(float(bid_amount / 2))
+                        self.update_game_state("pool-amount", self.pool)
                     print("first player checked\n")
                     second_player_bet = self.get_bid(second_player, first_player, communal_cards, first_player_bet,
                                                      bid_amount, raise_amount)
@@ -257,6 +264,7 @@ class Game:
 
     #We need to get the bids 1 at a time
     def get_bid(self, player, opponent, communal_cards, opponent_bet, bid_amount, raise_amount):
+        self.update_game_state("pool-amount", self.pool)
         game_state = self.game_state.copy()
         opponent_stats = opponent.get_stats()
         for key, value in opponent_stats.items():

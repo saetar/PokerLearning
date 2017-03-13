@@ -5,8 +5,7 @@ from util import PreflopEvaluator
 from util import evalHand
 from util import get_rank
 from util import percentHandStrength
-
-
+import pickle
 
 class Player:
     def __init__(self, chips):
@@ -31,6 +30,7 @@ class Player:
         return self.chips <= 0
 
     def ante(self, value):
+        value = min(self.chips, value)
         self.chips -= value
         return value
 
@@ -110,6 +110,8 @@ class QLearningPlayer(Player):
         self.update_weights(this_winnings)
 
     def get_q_value(self, game_state, action):
+        if game_state["all-in"]:
+            print("hi")
         q_learning_dict = self.make_q_learning_dict_from_state(game_state)
         score = 0.0
         for key in q_learning_dict:

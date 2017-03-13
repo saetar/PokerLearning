@@ -2,7 +2,10 @@ import random
 from util import Counter
 from util import Actions
 from util import PreflopEvaluator
-import pickle
+from util import evalHand
+from util import get_rank
+from util import percentHandStrength
+
 
 class Player:
     def __init__(self, chips):
@@ -52,7 +55,7 @@ class Player:
         if self.chips == 0:
             return [Actions.FOLD, Actions.CALL]
         else:
-            return Actions
+            return list(Actions)
 
     @staticmethod
     def print_communal_cards(communal_cards):
@@ -187,3 +190,45 @@ class RandomPlayer(Player):
     def get_bid(self, game_state, bid_amount, raise_amount):
         actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
         return random.choice(actions)
+      
+class TightPlayer(Player):
+    def __init__(self, chips):
+        super().__init__(chips)
+    
+    def get_features(self, game_state):
+        features = Counter()
+        for key, value in game_state.items():
+            if type(value) in [int, bool, float]:
+                features[key] = value
+            elif key == "communal-cards":
+                if len(value) == 0: # use preflop evaluator
+                    preflop_scores = PreflopEvaluator.evaluate_cards(self.hand)
+                    for key2, value2 in preflop_scores.items():
+                        features["hand-{}".format(key2)] = value2
+                else:
+                    handScore = evalHand(self.hand, value)
+                    print("HandScore: ",handScore)
+                    percentHandScore = percentHandStrength(handScore)
+                    print("percentHandScore: ",percentHandScore)
+                    handRank = get_rank(handScore)
+                   
+                    
+        return features
+    
+    
+    def get_bid(self, game_state, bid_amount, raise_amount):
+        features = self.get_features(game_state)
+        actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
+        print(actions)
+        return random.choice(actions)
+      
+class AggressivePlayer(Player):
+    def __init__(self, chips):
+        super().__init__(chips)
+
+    def get_bid(self, game_state, bid_amount, raise_amount):
+        actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
+        return random.choice(actions)
+      
+
+

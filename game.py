@@ -1,5 +1,5 @@
 from util import Actions
-from player import HumanPlayer, QLearningPlayer, RandomPlayer
+from player import HumanPlayer, QLearningPlayer, RandomPlayer, TightPlayer, AggressivePlayer
 from deck import Deck
 from deuces import Card
 from deuces import Evaluator
@@ -10,7 +10,7 @@ from util import BiddingRound
 class Game:
     def __init__(self, chips):
         self.human_player = HumanPlayer(chips)
-        self.computer_player = QLearningPlayer(chips)
+        self.computer_player = TightPlayer(chips)
         self.deck = Deck()
         self.pool = 0
         self.chips = chips

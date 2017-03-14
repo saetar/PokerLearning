@@ -28,7 +28,7 @@ class Game:
         """
         bid_amount = 5
         counter = -1
-        while not self.human_player.is_out() and not self.computer_player.is_out():
+        for i in range(1000):
             first_player = self.computer_player if counter < 0 else self.human_player
             second_player = self.human_player if counter < 0 else self.computer_player
             self.play_hand(first_player, second_player, bid_amount)
@@ -186,7 +186,7 @@ class Game:
                 if raise_amount > first_player.chips:
                     self.all_in = True
                     raise_amount = first_player.chips
-                    self.update_game_state("all-in", True)
+                self.update_game_state("all-in", self.all_in)
                 no_bets = False
                 self.pool += first_player.ante(raise_amount)
                 self.update_game_state("pool-amount", self.pool)
@@ -209,7 +209,7 @@ class Game:
                     if raise_amount > second_player.chips:
                         self.all_in = True
                         raise_amount = second_player.chips
-                        self.update_game_state("all-in", True)
+                    self.update_game_state("all-in", self.all_in)
                     print("second player raised\n")
                     self.pool += second_player.ante(raise_amount)
                     self.update_game_state("pool-amount", self.pool)
@@ -228,7 +228,7 @@ class Game:
                         if raise_amount > second_player.chips:
                             self.all_in = True
                             raise_amount = second_player.chips
-                            self.update_game_state("all-in", True)
+                        self.update_game_state("all-in", self.all_in)
                         no_bets = False
                         self.update_game_state("no-bets", no_bets)
                         print("second player raised\n")

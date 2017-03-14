@@ -5,6 +5,7 @@ from util import PreflopEvaluator
 from util import evalHand
 from util import get_rank
 from util import percentHandStrength
+from util import BiddingRound
 import pickle
 
 class Player:
@@ -34,7 +35,7 @@ class Player:
         self.chips -= value
         return value
 
-    def won(self, total_chips, pool_amt): #fuck this hsit
+    def won(self, total_chips, pool_amt):
         this_winnings = self.chips - total_chips + pool_amt
         self.winnings += this_winnings
 
@@ -89,14 +90,15 @@ class QLearningPlayer(Player):
 
     def make_q_learning_dict_from_state(self, game_state):
         q_learning_dict = Counter()
+        key_template = "PREFLOP" if game_state["bidding-round"] == BiddingRound.PREFLOP else "POSTFLOP"
         for key, value in game_state.items():
             if type(value) in [int, bool, float]:
-                q_learning_dict[key] = value
+                q_learning_dict["{}-{}".format(key_template, key)] = value
             elif key == "communal-cards":
                 if len(value) == 0: # use preflop evaluator
                     preflop_scores = PreflopEvaluator.evaluate_cards(self.hand)
                     for key2, value2 in preflop_scores.items():
-                        q_learning_dict["hand-{}".format(key2)] = value2
+                        q_learning_dict["{}-hand-{}".format(key_template, key2)] = value2
         return q_learning_dict
 
     def won(self, total_chips, pool_amt): #fuck this hsit
@@ -110,8 +112,6 @@ class QLearningPlayer(Player):
         self.update_weights(this_winnings)
 
     def get_q_value(self, game_state, action):
-        if game_state["all-in"]:
-            print("hi")
         q_learning_dict = self.make_q_learning_dict_from_state(game_state)
         score = 0.0
         for key in q_learning_dict:
@@ -145,7 +145,10 @@ class QLearningPlayer(Player):
             q_learning_dict = self.make_q_learning_dict_from_state(state)
             for feature in q_learning_dict:
                 weights[feature] += self.learning_rate * difference * q_learning_dict[feature]
-        self.q_learning_weights.divideAll(10)
+        max_val = max(max(abs(weight) for weight in weights.values()), 1)
+        weights.divideAll(max_val)
+        print(weights)
+        self.q_learning_weights = weights
         self.hand_features = []
 
     def get_bid(self, game_state, bid_amount, raise_amount):

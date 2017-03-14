@@ -146,13 +146,13 @@ class Game:
         if first_player_score > second_player_score:
             #print("second player won a pot of: ", self.pool)
             #print("they had")
-            second_player.print_hand()
+            #second_player.print_hand()
             second_player.won(self.chips, self.pool, True)
             first_player.loss(self.chips, self.pool, True)
         elif first_player_score < second_player_score:
             #print("first player won a pot of: ", self.pool)
             #print("they had")
-            first_player.print_hand()
+            #first_player.print_hand()
             first_player.won(self.chips, self.pool, True)
             second_player.loss(self.chips, self.pool, True)
         else:

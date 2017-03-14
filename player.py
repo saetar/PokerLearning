@@ -15,6 +15,8 @@ class Player:
         self.hand = []
         self.chips = chips
         self.winnings = 0
+        self.first_half_winnings = 0
+        self.last_half_winnings = 0
         self.stats = Counter()
         self.actions = []
         self.hand_features = []  # holds list of (game_state,action) pairs for training once we know whether we won or not
@@ -59,6 +61,10 @@ class Player:
     def won(self, total_chips, pool_amt, showdown=False):
         this_winnings = self.chips - total_chips + pool_amt
         self.winnings += this_winnings
+        if self.hands_played < 501:
+            self.first_half_winnings += this_winnings
+        else:
+            self.last_half_winnings += this_winnings
         self.updated_vpip = False
         self.updated_pfr = False
         self.hands_played += 1
@@ -69,6 +75,10 @@ class Player:
     def loss(self, total_chips, pool_amt, showdown=False):
         this_winnings = self.chips - total_chips
         self.winnings += this_winnings
+        if self.hands_played < 501:
+            self.first_half_winnings += this_winnings
+        else:
+            self.last_half_winnings += this_winnings
         self.updated_vpip = False
         self.updated_pfr = False
         self.hands_played += 1
@@ -96,7 +106,7 @@ class Player:
         commuanl_cards_strs += " " * 20
         commuanl_cards_strs += "  ".join(["{}".format(card.to_str()) for card in communal_cards])
         commuanl_cards_strs += "\n" + " " * 20 + "*" * 19 + "\n"
-        print("\n{}\n".format(commuanl_cards_strs))
+        #print("\n{}\n".format(commuanl_cards_strs))
 
     def get_bid(self, game_state, bid_amount, raise_amount):
         return None
@@ -104,7 +114,7 @@ class Player:
     def print_hand(self):
         hand_cards_str = [card.to_str() for card in self.hand]
         hcs = ", ".join(hand_cards_str)
-        #print(hcs)
+        ##print(hcs)
 
 
 class QLearningPlayer(Player):
@@ -114,7 +124,7 @@ class QLearningPlayer(Player):
         self.q_learning_weights = self.load_q_learning_weights()
 
     def get_computer_bid(self, game_state, bid_amount, raise_amount):
-        #print(game_state)
+        ##print(game_state)
         action = self.get_q_star_action(game_state, bid_amount, raise_amount)
         self.actions.append(action)
         return action
@@ -163,7 +173,7 @@ class QLearningPlayer(Player):
                 opponent.actions[len(opponent.actions) - 1] == Actions.RAISE
             q_learning_dict["{}-player-just-raised".format(key_template)] =\
                 self.actions[len(self.actions) - 1] == Actions.RAISE
-        #print(q_learning_dict)
+        ##print(q_learning_dict)
         q_learning_dict.divideAll(10.0)
         return q_learning_dict
 
@@ -171,6 +181,10 @@ class QLearningPlayer(Player):
         this_winnings = self.chips - total_chips + pool_amt
         self.winnings += this_winnings
         self.update_weights(this_winnings)
+        if self.hands_played < 501:
+            self.first_half_winnings += this_winnings
+        else:
+            self.last_half_winnings += this_winnings
         self.updated_vpip = False
         self.updated_pfr = False
         self.hands_played += 1
@@ -181,13 +195,18 @@ class QLearningPlayer(Player):
     def loss(self, total_chips, pool_amt, showdown=False):
         this_winnings = self.chips - total_chips
         self.winnings += this_winnings
+        if self.hands_played < 501:
+            self.first_half_winnings += this_winnings
+        else:
+            self.last_half_winnings += this_winnings
         self.update_weights(this_winnings)
         self.updated_vpip = False
         self.updated_pfr = False
         self.hands_played += 1
         if showdown:
             if self.chips == 0:
-                print("player is all in")
+                pass
+                #print("player is all in")
             self.played_to_showdown += 1
 
     def get_q_value(self, game_state, action):
@@ -195,7 +214,8 @@ class QLearningPlayer(Player):
         score = 0.0
         for key in q_learning_dict:
             if (q_learning_dict[key] is None) or (self.q_learning_weights[key] is None):
-                print('hi')
+                #print('hi')
+                pass
             try:
                 score += q_learning_dict[key] * self.q_learning_weights[key]
             except:
@@ -220,22 +240,23 @@ class QLearningPlayer(Player):
         """  gotta train them weights  """
         for state, action in self.hand_features:
             difference = (winnings / 1000) - self.get_q_value(state, action)
-            print(difference)
+            #print(difference)
             q_learning_dict = self.make_q_learning_dict_from_state(state, action)
             for feature in q_learning_dict:
                 weights[feature] += self.learning_rate * difference * q_learning_dict[feature]
-        #print(weights)
+        ##print(weights)
         self.q_learning_weights = weights
         self.hand_features = []
 
     def get_bid(self, game_state, bid_amount, raise_amount):
-        print("Computer cards:")
+        #print("Computer cards:")
         self.print_hand()
         action = self.get_q_star_action(game_state, bid_amount, raise_amount)
-        if random.random() > -0.1:
-            true_action = action
-        else:
-            true_action = random.choice(list(self.get_legal_actions(game_state, bid_amount, raise_amount)))
+        #if random.random() > -0.1:
+        #    true_action = action
+        #else:
+        #    true_action = random.choice(list(self.get_legal_actions(game_state, bid_amount, raise_amount)))
+        true_action = action
         if game_state["betting-round"] == BiddingRound.PREFLOP:
             if true_action == Actions.RAISE:
                 if not self.updated_vpip:
@@ -289,11 +310,11 @@ class HumanPlayer(Player):
         Player.print_communal_cards(communal_cards)
         hand_cards_str = [card.to_str() for card in self.hand]
         hcs = ", ".join(hand_cards_str)
-        print("The pot is now: {}".format(game_state["pool-amount"]))
-        print("The raise amount is {} and the call amount is {}".format(raise_amount, bid_amount))
-        print("You have {} chips".format(self.chips))
-        print("Your hand is {}".format(hcs))
-        print("Your legal actions are: {}".format(self.get_legal_actions(game_state, bid_amount, raise_amount)))
+        #print("The pot is now: {}".format(game_state["pool-amount"]))
+        #print("The raise amount is {} and the call amount is {}".format(raise_amount, bid_amount))
+        #print("You have {} chips".format(self.chips))
+        #print("Your hand is {}".format(hcs))
+        #print("Your legal actions are: {}".format(self.get_legal_actions(game_state, bid_amount, raise_amount)))
         bid = input("Would you like to [f]old, [c]all, or [r]aise?\n")
         if bid[0] == 'f':
             action = Actions.FOLD

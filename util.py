@@ -90,7 +90,7 @@ class Actions(Enum):
     FOLD = 0
     CALL = 1
     RAISE = 2
-    
+
 """
 Returns a value between 1 and 7462 for a 5 card poker hand out of 5, 6, or 7 cards
 """
@@ -111,9 +111,9 @@ def evalHand(hand, communal_cards):
 def get_rank(score):
     evaluator = Evaluator()
     rank = evaluator.get_rank_class(score)
-    print(evaluator.class_to_string(rank))
+    #print(evaluator.class_to_string(rank))
     return rank
-                
+
 def percentHandStrength(score):
     return score / float(7462)
 
@@ -124,8 +124,8 @@ def possibleFlush(cards):
         return (len(set([card.suit for card in cards])) >= 4)
     else:
         return False
-        
-         
+
+
 def possibleStraight(cards):
     card_values = []
     for card in cards:

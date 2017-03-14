@@ -8,7 +8,7 @@ from util import BiddingRound
 
 
 class Game:
-    def __init__(self, chips):
+    def __init__(self, chips, human_player, computer_player):
         self.human_player = QLearningPlayer(chips, AggressivePlayer)
         self.computer_player = AggressivePlayer(chips)
         self.deck = Deck()
@@ -24,13 +24,15 @@ class Game:
     def get_actions():
         return Actions
 
-    def start_game(self):
+    def start_game(self, num_hands):
         """
             While there are chips in either players pockets, play hands
         """
         bid_amount = 5
         counter = -1
-        for i in range(1000):
+        for i in range(num_hands):
+            if i%100 == 0:
+                print("another 100 hands")
             first_player = self.computer_player if counter < 0 else self.human_player
             second_player = self.human_player if counter < 0 else self.computer_player
             self.play_hand(first_player, second_player, bid_amount)
@@ -40,8 +42,12 @@ class Game:
                 second_player.store_q_learning_weights()
             self.hands_played += 1
             self.get_players_winnings()
-            print("-------------- NEW HAND -------------")
+            ##print("-------------- NEW HAND -------------")
             counter *= -1
+        print("computer player winnings")
+        print(self.computer_player.first_half_winnings, self.computer_player.last_half_winnings)
+        print("human player winnings")
+        print(self.human_player.first_half_winnings, self.human_player.last_half_winnings)
 
     def play_hand(self, first_player, second_player, bid_amount):
         """
@@ -53,13 +59,11 @@ class Game:
         """
         """ Tell the player how many chips they have and which player they are"""
         if self.human_player == first_player:
-            print("You are the first player")
+            ##print("You are the first player")
             opponent_player = second_player
         elif self.human_player == second_player:
-            print("You are the second player")
+            ##print("You are the second player")
             opponent_player = first_player
-        else:
-            print("rip")
         self.deck = Deck()
         self.deck.shuffle()
         communal_cards = []
@@ -79,10 +83,10 @@ class Game:
         self.pool = 0
         self.pool += first_player.ante(bid_amount / 2.0)
         self.pool += second_player.ante(bid_amount)
-        print("The pot starts at: ", self.pool)
+        ##print("The pot starts at: ", self.pool)
         """  Go through a round of betting  """
         winner = self.do_betting_round(first_player, second_player, communal_cards, BiddingRound.PREFLOP)
-        print("The pot preflop is: ", self.pool)
+        ##print("The pot preflop is: ", self.pool)
         if winner is not None:
             loser = first_player if first_player is not winner else second_player
             winner.won(self.chips, self.pool)
@@ -98,7 +102,7 @@ class Game:
         if not self.all_in:
             """  Go through a 2nd round of betting if not all in  """
             winner = self.do_betting_round(first_player, second_player, communal_cards, BiddingRound.POST_FLOP)
-        print("The pot after the flop is: ", self.pool)
+        ##print("The pot after the flop is: ", self.pool)
         if winner:
             loser = first_player if first_player is not winner else second_player
             winner.won(self.chips, self.pool)
@@ -111,7 +115,7 @@ class Game:
         if not self.all_in:
             """  Go through a 3nd round of betting  """
             winner = self.do_betting_round(first_player, second_player, communal_cards, BiddingRound.POST_FLOP)
-        print("The pot after the turn is: ", self.pool)
+        ##print("The pot after the turn is: ", self.pool)
         if winner:
             loser = first_player if first_player is not winner else second_player
             winner.won(self.chips, self.pool)
@@ -124,7 +128,7 @@ class Game:
         if not self.all_in:
             """  Go through a 4th round of betting  """
             winner = self.do_betting_round(first_player, second_player, communal_cards, BiddingRound.PREFLOP)
-        print("The pot after the river is: ", self.pool)
+        #print("The pot after the river is: ", self.pool)
         if winner:
             loser = first_player if first_player is not winner else second_player
             winner.won(self.chips, self.pool)
@@ -133,26 +137,26 @@ class Game:
 
         """  Evaluate hands at end  """
         community_cards_strs = [str(card) for card in communal_cards]
-        print("*" * 50)
-        print(", ".join(community_cards_strs))
-        print("*" * 50)
+        #print("*" * 50)
+        #print(", ".join(community_cards_strs))
+        #print("*" * 50)
         first_player_score = self.evalHand(first_player.get_hand(), list(communal_cards))
         second_player_score = self.evalHand(second_player.get_hand(), list(communal_cards))
         # LOW SCORE WINS IN DEUCES
         if first_player_score > second_player_score:
-            print("second player won a pot of: ", self.pool)
-            print("they had")
+            #print("second player won a pot of: ", self.pool)
+            #print("they had")
             second_player.print_hand()
             second_player.won(self.chips, self.pool, True)
             first_player.loss(self.chips, self.pool, True)
         elif first_player_score < second_player_score:
-            print("first player won a pot of: ", self.pool)
-            print("they had")
+            #print("first player won a pot of: ", self.pool)
+            #print("they had")
             first_player.print_hand()
             first_player.won(self.chips, self.pool, True)
             second_player.loss(self.chips, self.pool, True)
         else:
-            print("split pot!")
+            #print("split pot!")
             first_player.won(self.chips, self.pool / 2.0, True)
             second_player.won(self.chips, self.pool / 2.0, True)
 
@@ -200,24 +204,24 @@ class Game:
                 self.update_game_state("no-bets", no_bets)
                 bid_amount = raise_amount
                 raise_amount *= 2
-                print("first player raised: ", bid_amount)
+                #print("first player raised: ", bid_amount)
                 second_player_bet = self.get_bid(second_player, first_player, communal_cards, first_player_bet,
                                                  bid_amount, raise_amount)
                 if second_player_bet == Actions.CALL:
                     self.pool += second_player.ante(bid_amount)
                     self.update_game_state("pool-amount", self.pool)
-                    print("second player called the raise\n")
+                    #print("second player called the raise\n")
                     do_again = False
                 elif second_player_bet == Actions.FOLD:
                     winner = first_player
-                    print("second player folded\n")
+                    #print("second player folded\n")
                     do_again = False
                 elif second_player_bet == Actions.RAISE:
                     if raise_amount > second_player.chips:
                         self.all_in = True
                         raise_amount = second_player.chips
                     self.update_game_state("all-in", self.all_in)
-                    print("second player raised\n")
+                    #print("second player raised\n")
                     self.pool += second_player.ante(raise_amount)
                     self.update_game_state("pool-amount", self.pool)
                     bid_amount = raise_amount
@@ -228,7 +232,7 @@ class Game:
                     if self.game_state["betting-round"] == BiddingRound.PREFLOP:
                         self.pool += first_player.ante(float(bid_amount / 2))
                         self.update_game_state("pool-amount", self.pool)
-                    print("first player checked\n")
+                    #print("first player checked\n")
                     second_player_bet = self.get_bid(second_player, first_player, communal_cards, first_player_bet,
                                                      bid_amount, raise_amount)
                     if second_player_bet == Actions.RAISE:
@@ -238,7 +242,7 @@ class Game:
                         self.update_game_state("all-in", self.all_in)
                         no_bets = False
                         self.update_game_state("no-bets", no_bets)
-                        print("second player raised\n")
+                        #print("second player raised\n")
                         self.pool += second_player.ante(raise_amount)
                         self.update_game_state("pool-amount", self.pool)
                         bid_amount = raise_amount
@@ -246,26 +250,28 @@ class Game:
                         do_again = True
                     elif second_player_bet == Actions.CALL:
                         if no_bets:
-                            print("second player checked\n")
+                            pass
+                            #print("second player checked\n")
                         else:
-                            print("second player called\n")
+                            pass
+                            #print("second player called\n")
                         if not no_bets:
                             self.pool += second_player.ante(bid_amount)
                             self.update_game_state("pool-amount", self.pool)
                         do_again = False
                     elif second_player_bet == Actions.FOLD:
-                        print("second player folded\n")
+                        #print("second player folded\n")
                         winner = first_player
                         do_again = False
                 else:
                     self.pool += first_player.ante(bid_amount)
 
                     self.update_game_state("pool-amount", self.pool)
-                    print("first player called\n")
+                    #print("first player called\n")
                     do_again = False
 
             elif first_player_bet == Actions.FOLD:
-                print("first player folded\n")
+                #print("first player folded\n")
                 winner = second_player
                 do_again = False
         return winner
@@ -301,16 +307,18 @@ class Game:
         return evaluator.evaluate(board, handList)
 
     def get_players_winnings(self):
-        print("Computer player's winnings: {}, per hand: {}".format(self.computer_player.winnings,
-                                                                    self.computer_player.winnings / self.hands_played))
-        print("Human player's winnings: {}, per hand: {}".format(self.human_player.winnings,
-                                                                 self.human_player.winnings / self.hands_played))
+        #print("Computer player's winnings: {}, per hand: {}".format(self.computer_player.winnings,
+        #                                                        self.computer_player.winnings / self.hands_played))
+        #print("Human player's winnings: {}, per hand: {}".format(self.human_player.winnings,
+        #                                                         self.human_player.winnings / self.hands_played))
         return self.computer_player.winnings / self.hands_played, self.human_player.winnings / self.hands_played
 
 
-def main():
-    game = Game(500)
-    game.start_game()
+def main(args):
+    if "hands" in args:
+        num_hands = int(args[1])
+    game = Game(500, human_player, computer_player)
+    game.start_game(num_hands)
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

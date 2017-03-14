@@ -117,6 +117,40 @@ def get_rank(score):
 def percentHandStrength(score):
     return score / float(7462)                          
                                   
+def possibleStraight(cards):
+    card_values = []
+    for card in all_cards:
+        cardval = card.value
+        if cardval == 1:
+            cardval = 14
+        card_values.append(cardval)
+    if len(cards) == 3:
+        for i in range(2,15):
+            for j in range(2,15):
+                card_values.append(i)
+                sort(card_values)
+                possibleStraight = True
+                for k in range(len(card_values) - 1):
+                    if card_values[k] + 1 != card_values[k+1]:
+                        possibleStraight = False
+                if possibleStraight:
+                    return True
+                card_values.remove(j)
+            card_values.remove(i)
+
+    elif len(cards) == 4:
+        for i in range(2,15):
+          card_values.append(i)
+          sort(card_values)
+          possibleStraight = True
+          for k in range(len(card_values) - 1):
+              if card_values[k] + 1 != card_values[k+1]:
+                  possibleStraight = False
+          if possibleStraight:
+              return True
+          card_values.remove(i)
+    else:
+        return features["possible-straight"] = False
 class PreflopEvaluator:
     @staticmethod
     def get_range_score(hand):
@@ -127,7 +161,14 @@ class PreflopEvaluator:
         :param hand: list of two cards
         :return:
         """
-        return 6 - abs(hand[0].value - hand[1].value)
+        value0 = hand[0].value
+        value1 = hand[1].value
+        #check aces
+        if value0 == 1:
+            value0 = 14
+        if value1 == 1:
+            value1 = 14
+        return 6 - abs(value0 - value1)
 
     @staticmethod
     def get_pair_score(hand):

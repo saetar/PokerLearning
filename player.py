@@ -5,6 +5,7 @@ from util import PreflopEvaluator
 from util import evalHand
 from util import get_rank
 from util import percentHandStrength
+from util import possibleStraight
 from util import BiddingRound
 import pickle
 
@@ -257,7 +258,10 @@ class TightPlayer(Player):
                                     flush_score += 1
                         if (5-flush_score) <= (5 - len(value)):
                             features["possible-flush"] = True
-
+                    if handRank != 5:
+                        all_cards = self.hand + value
+                        features["possible-straight"] = possibleStraight(all_cards)
+           
                     for key2, value2 in preflop_scores.items():
                         features["hand-{}".format(key2)] = value2
                    
@@ -266,6 +270,7 @@ class TightPlayer(Player):
     
     
     def get_bid(self, game_state, bid_amount, raise_amount):
+        self.print_hand()
         features = self.get_features(game_state)
         actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
         ace = False
@@ -324,11 +329,17 @@ class TightPlayer(Player):
         else:
             if features["percentScore"] < .3 and features["percentScore"]:
                 return Actions.RAISE
-            #if features["percentScore"] > .9
-
-
-        print(actions)
-        return random.choice(actions)
+            if features["percentScore"] < .3:
+                return Actions.RAISE
+            elif features["percentScore"] > .3 and features["percentScore"] < .8:
+                return Actions.CALL
+            else:
+                if Actions.FOLD in actions: #if we can't check fold otherwise check
+                    return Actions.FOLD
+                else:
+                    return Actions.CALL
+        #print(actions)
+        return Actions.FOLD
       
 class AggressivePlayer(Player):
     def __init__(self, chips):

@@ -183,12 +183,17 @@ class Game:
             first_player_bet = self.get_bid(first_player, second_player, communal_cards,
                                             second_player_bet, bid_amount, raise_amount)
             if first_player_bet == Actions.RAISE:
-                if raise_amount > first_player.chips:
-                    self.all_in = True
-                    raise_amount = first_player.chips
-                self.update_game_state("all-in", self.all_in)
+                if no_bets and self.game_state["betting-round"] == BiddingRound.PREFLOP:
+                    self.pool += first_player.ante(7.5)
+                    self.update_game_state("pool-amount", self.pool)
+                else:
+                    if raise_amount > first_player.chips:
+                        self.all_in = True
+                        raise_amount = first_player.chips
+                        self.update_game_state("all-in", True)
+                    self.pool += first_player.ante(raise_amount)
                 no_bets = False
-                self.pool += first_player.ante(raise_amount)
+                
                 self.update_game_state("pool-amount", self.pool)
                 self.update_game_state("no-bets", no_bets)
                 bid_amount = raise_amount

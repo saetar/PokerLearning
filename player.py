@@ -114,7 +114,7 @@ class Player:
     def print_hand(self):
         hand_cards_str = [card.to_str() for card in self.hand]
         hcs = ", ".join(hand_cards_str)
-        ##print(hcs)
+        print(hcs)
 
 
 class QLearningPlayer(Player):
@@ -181,6 +181,9 @@ class QLearningPlayer(Player):
         this_winnings = self.chips - total_chips + pool_amt
         self.winnings += this_winnings
         self.update_weights(this_winnings)
+        if this_winnings > 100:
+            pass
+            #self.print_hand()
         if self.hands_played < 501:
             self.first_half_winnings += this_winnings
         else:
@@ -199,6 +202,8 @@ class QLearningPlayer(Player):
             self.first_half_winnings += this_winnings
         else:
             self.last_half_winnings += this_winnings
+        if this_winnings < -100:
+            self.print_hand()
         self.update_weights(this_winnings)
         self.updated_vpip = False
         self.updated_pfr = False

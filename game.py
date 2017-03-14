@@ -5,12 +5,12 @@ from deuces import Card
 from deuces import Evaluator
 from util import Counter
 from util import BiddingRound
-
+import sys
 
 class Game:
-    def __init__(self, chips, human_player, computer_player):
-        self.human_player = QLearningPlayer(chips, AggressivePlayer)
-        self.computer_player = AggressivePlayer(chips)
+    def __init__(self, chips, opponent):
+        self.human_player = QLearningPlayer(chips, opponent)
+        self.computer_player = opponent(chips)
         self.deck = Deck()
         self.pool = 0
         self.chips = chips
@@ -315,9 +315,9 @@ class Game:
 
 
 def main(args):
-    if "hands" in args:
-        num_hands = int(args[1])
-    game = Game(500, human_player, computer_player)
+    num_hands = int(args[0])
+    opponent = eval(args[1])
+    game = Game(500, opponent)
     game.start_game(num_hands)
 
 if __name__ == '__main__':

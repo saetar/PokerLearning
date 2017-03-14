@@ -85,6 +85,8 @@ class Player:
         elif game_state["betting-round"] == BiddingRound.PREFLOP and \
                         game_state["first-player"] is not self and game_state["no-bets"]:
             return [Actions.CALL, Actions.RAISE]
+        elif game_state["betting-round"] == BiddingRound.POST_FLOP and game_state["no-bets"]:
+            return [Actions.CALL, Actions.RAISE]
         else:
             return list(Actions)
 
@@ -142,6 +144,19 @@ class QLearningPlayer(Player):
                         percentHandStrength(hand_score)
                     q_learning_dict["{}-handrank".format(key_template)] =\
                         get_rank(hand_score)
+                else:
+                    hand_score = evalHand(self.hand, value)
+                    percentHandScore = percentHandStrength(hand_score)
+                    board_score = evalHand(value[0:2], value[2:])
+                    percentBoardScore = percentHandStrength(board_score)
+                    diffScore = percentHandScore - percentBoardScore
+                    q_learning_dict["{}-percent-communal-cards".format(key_template)] =\
+                        percentHandStrength(hand_score)
+                    q_learning_dict["{}-handrank".format(key_template)] =\
+                        get_rank(hand_score)
+                    q_learning_dict["{}-diffscore".format(key_template)] =\
+                        get_rank(diffScore)
+
         if (not (game_state["betting-round"] == BiddingRound.PREFLOP and game_state["no-bids"])) and len(self.actions) > 0\
                 and len(opponent.actions) > 0:
             q_learning_dict["{}-opponent-just-raised".format(key_template)] =\
@@ -171,6 +186,8 @@ class QLearningPlayer(Player):
         self.updated_pfr = False
         self.hands_played += 1
         if showdown:
+            if self.chips == 0:
+                print("player is all in")
             self.played_to_showdown += 1
 
     def get_q_value(self, game_state, action):
@@ -184,12 +201,6 @@ class QLearningPlayer(Player):
             except:
                 pass
         return score
-
-    def get_legal_actions(self, game_state, bid_amount, raise_amount):
-        if self.chips == 0:
-            return [Actions.FOLD, Actions.CALL]
-        else:
-            return Actions
 
     def get_q_star_action(self, game_state, bid_amount, raise_amount):
         optimal_action = []
@@ -221,7 +232,7 @@ class QLearningPlayer(Player):
         print("Computer cards:")
         self.print_hand()
         action = self.get_q_star_action(game_state, bid_amount, raise_amount)
-        if random.random() > 0.1:
+        if random.random() > -0.1:
             true_action = action
         else:
             true_action = random.choice(list(self.get_legal_actions(game_state, bid_amount, raise_amount)))
@@ -334,11 +345,11 @@ class RandomPlayer(Player):
                         self.updated_vpip = True
         return true_action
 
-      
+
 class TightPlayer(Player):
     def __init__(self, chips):
         super().__init__(chips)
-    
+
     def get_features(self, game_state):
         features = Counter()
         for key, value in game_state.items():
@@ -370,14 +381,14 @@ class TightPlayer(Player):
                     if handRank != 5:
                         all_cards = self.hand + value
                         features["possible-straight"] = possibleStraight(all_cards)
-           
+
                     for key2, value2 in preflop_scores.items():
                         features["hand-{}".format(key2)] = value2
-                   
-                    
+
+
         return features
-    
-    
+
+
     def get_bid(self, game_state, bid_amount, raise_amount):
         features = self.get_features(game_state)
         actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
@@ -482,11 +493,11 @@ class TightPlayer(Player):
                         self.vpip += 1
                         self.updated_vpip = True
         return action or Actions.FOLD
-      
+
 class AggressivePlayer(Player):
     def __init__(self, chips):
         super().__init__(chips)
-    
+
     def get_features(self, game_state):
         features = Counter()
         for key, value in game_state.items():
@@ -516,14 +527,14 @@ class AggressivePlayer(Player):
                     if handRank != 5:
                         all_cards = self.hand + value
                         features["possible-straight"] = possibleStraight(all_cards)
-           
+
                     for key2, value2 in preflop_scores.items():
                         features["hand-{}".format(key2)] = value2
-                   
-                    
+
+
         return features
-    
-    
+
+
     def get_bid(self, game_state, bid_amount, raise_amount):
         features = self.get_features(game_state)
         actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
@@ -564,7 +575,7 @@ class AggressivePlayer(Player):
                         action = Actions.FOLD
                     else:
                         action = Actions.CALL
-                
+
             #they reraised
             else:
                 if ace and features["hand-pair-score"] == 1: #If we have pocket aces raise
@@ -634,6 +645,3 @@ class AggressivePlayer(Player):
                         self.vpip += 1
                         self.updated_vpip = True
         return action or Actions.FOLD
-      
-
-

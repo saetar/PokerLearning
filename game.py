@@ -30,7 +30,7 @@ class Game:
         """
         bid_amount = 5
         counter = -1
-        for i in range(10000):
+        for i in range(1000):
             first_player = self.computer_player if counter < 0 else self.human_player
             second_player = self.human_player if counter < 0 else self.computer_player
             self.play_hand(first_player, second_player, bid_amount)
@@ -195,7 +195,7 @@ class Game:
                         self.update_game_state("all-in", True)
                     self.pool += first_player.ante(raise_amount)
                 no_bets = False
-                
+
                 self.update_game_state("pool-amount", self.pool)
                 self.update_game_state("no-bets", no_bets)
                 bid_amount = raise_amount
@@ -247,7 +247,7 @@ class Game:
                     elif second_player_bet == Actions.CALL:
                         if no_bets:
                             print("second player checked\n")
-                        else:        
+                        else:
                             print("second player called\n")
                         if not no_bets:
                             self.pool += second_player.ante(bid_amount)
@@ -263,7 +263,7 @@ class Game:
                     self.update_game_state("pool-amount", self.pool)
                     print("first player called\n")
                     do_again = False
-                
+
             elif first_player_bet == Actions.FOLD:
                 print("first player folded\n")
                 winner = second_player

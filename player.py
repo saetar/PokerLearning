@@ -120,6 +120,9 @@ class QLearningPlayer(Player):
         q_learning_dict = self.make_q_learning_dict_from_state(game_state)
         score = 0.0
         for key in q_learning_dict:
+            print(key)
+            if (q_learning_dict[key] is None) or (self.q_learning_weights[key] is None):
+                print('hi')
             score += q_learning_dict[key] * self.q_learning_weights[key]
         return score
 
@@ -338,6 +341,24 @@ class TightPlayer(Player):
                 return Actions.CALL
             else:
                 if Actions.FOLD in actions: #if we can't check fold otherwise check
+                    if features["possible-straight"]:
+                        if ace:
+                            return Actions.CALL
+                        elif self.hand[0].value + self.hand[1].value > 22:
+                            return Actions.CALL
+                        elif features["possible-flush"]:
+                            return Actions.CALL
+                        else:
+                            return Actions.FOLD
+                    if features["possible-flush"]:
+                        if ace:
+                            return Actions.CALL
+                        elif self.hand[0].value + self.hand[1].value > 22:
+                            return Actions.CALL
+                        elif features["possible-straight"]:
+                            return Actions.CALL
+                        else:
+                            return Actions.FOLD
                     return Actions.FOLD
                 else:
                     return Actions.CALL

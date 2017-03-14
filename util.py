@@ -116,7 +116,16 @@ def get_rank(score):
                 
 def percentHandStrength(score):
     return score / float(7462)                          
-                                  
+
+def possibleFlush(cards):
+    if len(cards) == 5:
+        return (len(set([card.suit for card in cards])) >= 3)
+    elif len(cards) == 6:
+        return (len(set([card.suit for card in cards])) >= 4)
+    else:
+        return False
+        
+         
 def possibleStraight(cards):
     card_values = []
     for card in cards:
@@ -124,10 +133,11 @@ def possibleStraight(cards):
         if cardval == 1:
             cardval = 14
         card_values.append(cardval)
-    if len(cards) == 3:
+    if len(cards) == 5:
         for i in range(2,15):
+            card_values.append(i)
             for j in range(2,15):
-                card_values.append(i)
+                card_values.append(j)
                 card_values.sort()
                 possibleStraight = True
                 for k in range(len(card_values) - 1):
@@ -137,18 +147,19 @@ def possibleStraight(cards):
                     return True
                 card_values.remove(j)
             card_values.remove(i)
-
-    elif len(cards) == 4:
-        for i in range(2, 15):
+        return False
+    elif len(cards) == 6:
+        for i in range(2,15):
             card_values.append(i)
             card_values.sort()
             possibleStraight = True
             for k in range(len(card_values) - 1):
-              if card_values[k] + 1 != card_values[k+1]:
-                  possibleStraight = False
+                if card_values[k] + 1 != card_values[k+1]:
+                    possibleStraight = False
             if possibleStraight:
-              return True
+                return True
             card_values.remove(i)
+        return False
     else:
         return False
 

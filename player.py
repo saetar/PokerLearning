@@ -5,8 +5,8 @@ from util import PreflopEvaluator
 from util import evalHand
 from util import get_rank
 from util import percentHandStrength
-
-
+from util import possibleStraight
+import pickle
 
 class Player:
     def __init__(self, chips):
@@ -16,7 +16,7 @@ class Player:
         self.stats = Counter()
         self.actions = []
         self.hand_features = []  # holds list of (game_state,action) pairs for training once we know whether we won or not
-        self.learning_rate = 0.5
+        self.learning_rate = 0.01
 
     def add_card_to_hand(self, card):
         self.hand.append(card)
@@ -31,6 +31,7 @@ class Player:
         return self.chips <= 0
 
     def ante(self, value):
+        value = min(self.chips, value)
         self.chips -= value
         return value
 
@@ -44,6 +45,7 @@ class Player:
 
     def clear_hand(self):
         self.hand = []
+        self.hand_features = []
 
     def get_stats(self):
         if len(self.actions) > 0:
@@ -73,6 +75,7 @@ class Player:
         hand_cards_str = [card.to_str() for card in self.hand]
         hcs = ", ".join(hand_cards_str)
         print(hcs)
+
 
 class QLearningPlayer(Player):
     def __init__(self, chips):
@@ -108,6 +111,8 @@ class QLearningPlayer(Player):
         self.update_weights(this_winnings)
 
     def get_q_value(self, game_state, action):
+        if game_state["all-in"]:
+            print("hi")
         q_learning_dict = self.make_q_learning_dict_from_state(game_state)
         score = 0.0
         for key in q_learning_dict:
@@ -141,11 +146,14 @@ class QLearningPlayer(Player):
             q_learning_dict = self.make_q_learning_dict_from_state(state)
             for feature in q_learning_dict:
                 weights[feature] += self.learning_rate * difference * q_learning_dict[feature]
+        self.q_learning_weights.divideAll(10)
         self.hand_features = []
 
     def get_bid(self, game_state, bid_amount, raise_amount):
         print("Computer cards:")
         self.print_hand()
+        action = self.get_q_star_action(game_state, bid_amount, raise_amount)
+        self.hand_features.append((game_state, action))
         return self.get_q_star_action(game_state, bid_amount, raise_amount)
 
     def load_q_learning_weights(self):
@@ -230,7 +238,10 @@ class TightPlayer(Player):
                                     flush_score += 1
                         if (5-flush_score) <= (5 - len(value)):
                             features["possible-flush"] = True
-
+                    if handRank != 5:
+                        all_cards = self.hand + value
+                        features["possible-straight"] = possibleStraight(all_cards)
+           
                     for key2, value2 in preflop_scores.items():
                         features["hand-{}".format(key2)] = value2
                    
@@ -239,6 +250,7 @@ class TightPlayer(Player):
     
     
     def get_bid(self, game_state, bid_amount, raise_amount):
+        self.print_hand()
         features = self.get_features(game_state)
         actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
         ace = False
@@ -291,17 +303,25 @@ class TightPlayer(Player):
                         return Actions.CALL
                     else:
                         return Actions.FOLD
-            return Actions.Fold #all unconsidered cases fold
+            return Actions.FOLD #all unconsidered cases fold
 
         #post flop
         else:
-            if features["percentScore"] < .3 and features["percentScore"]:
-                return actions.RAISE
+            if features["percentScore"] < .3:
+                return Actions.RAISE
+            elif features["percentScore"] > .3 and features["percentScore"] < .8:
+                return Actions.CALL
+            else:
+                if Actions.FOLD in actions: #if we can't check fold otherwise check
+                    return Actions.FOLD
+                else:
+                    return Actions.CALL
+                
             #if features["percentScore"] > .9
 
 
-        print(actions)
-        return random.choice(actions)
+        #print(actions)
+        return Actions.FOLD
       
 class AggressivePlayer(Player):
     def __init__(self, chips):

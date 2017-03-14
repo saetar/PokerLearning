@@ -115,7 +115,7 @@ def get_rank(score):
     return rank
                 
 def percentHandStrength(score):
-    return score / float(7462)                          
+    return score / float(7462)
 
 def possibleFlush(cards):
     if len(cards) == 5:
@@ -200,12 +200,22 @@ class PreflopEvaluator:
         return hand[0].suit == hand[1].suit
 
     @staticmethod
+    def get_high_card(hand):
+        return max([14 if hand[0].value == 1 else hand[0].value,14 if hand[1].value == 1 else hand[1].value])
+
+    @staticmethod
+    def get_sum_card(hand):
+        return sum([14 if hand[0].value == 1 else hand[0].value, 14 if hand[1].value == 1 else hand[1].value])
+
+    @staticmethod
     def evaluate_cards(hand):
         card_stats = Counter()
         hand = list(hand)
         card_stats['range-score'] = PreflopEvaluator.get_range_score(hand)
         card_stats['pair-score'] = PreflopEvaluator.get_pair_score(hand)
         card_stats['flush-score'] = PreflopEvaluator.get_flush_score(hand)
+        card_stats['high-card-score'] = PreflopEvaluator.get_high_card(hand) / 100.0
+        card_stats['card-sum'] = PreflopEvaluator.get_sum_card(hand)
         return card_stats
 
 

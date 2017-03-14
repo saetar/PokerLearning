@@ -19,12 +19,24 @@ class Player:
         self.actions = []
         self.hand_features = []  # holds list of (game_state,action) pairs for training once we know whether we won or not
         self.learning_rate = 0.01
+        self.hands_played = 1
+        self.pfr = 0
+        self.vpip = 0
+        self.updated_pfr = False
+        self.updated_vpip = False
+        self.won_at_showdown = 0
+        self.played_to_showdown = 1
 
     def get_stats(self):
         if len(self.actions) > 0:
             self.stats['raise-rate'] = sum([action == Actions.RAISE for action in self.actions]) / len(self.actions)
             self.stats['fold-rate'] = sum(action == Actions.FOLD for action in self.actions) / len(self.actions)
             self.stats['call-rate'] = sum(action == Actions.CALL for action in self.actions) / len(self.actions)
+            self.stats['vpip'] = self.vpip / self.hands_played
+            self.stats['pfr'] = self.pfr / self.hands_played
+            if not self.stats['call-rate'] == 0:
+                self.stats['aggression-factor'] = self.stats['raise-rate'] / self.stats['call-rate'] / 10.0
+            self.stats['won-at-showdown'] = self.won_at_showdown / self.played_to_showdown
         return self.stats
 
     def add_card_to_hand(self, card):
@@ -44,13 +56,24 @@ class Player:
         self.chips -= value
         return value
 
-    def won(self, total_chips, pool_amt):
+    def won(self, total_chips, pool_amt, showdown=False):
         this_winnings = self.chips - total_chips + pool_amt
         self.winnings += this_winnings
+        self.updated_vpip = False
+        self.updated_pfr = False
+        self.hands_played += 1
+        if showdown:
+            self.played_to_showdown += 1
+            self.won_at_showdown += 1
 
-    def loss(self, total_chips, pool_amt):
+    def loss(self, total_chips, pool_amt, showdown=False):
         this_winnings = self.chips - total_chips
         self.winnings += this_winnings
+        self.updated_vpip = False
+        self.updated_pfr = False
+        self.hands_played += 1
+        if showdown:
+            self.played_to_showdown += 1
 
     def clear_hand(self):
         self.hand = []
@@ -59,9 +82,9 @@ class Player:
     def get_legal_actions(self, game_state, bid_amount, raise_amount):
         if self.chips <= 0 or raise_amount > self.chips:
             return [Actions.FOLD, Actions.CALL]
-        elif game_state["bidding-round"] == BiddingRound.PREFLOP:
-            if game_state["first-player"] is not self and game_state["no-bets"]:
-                return [Actions.CALL, Actions.RAISE]
+        elif game_state["betting-round"] == BiddingRound.PREFLOP and \
+                        game_state["first-player"] is not self and game_state["no-bets"]:
+            return [Actions.CALL, Actions.RAISE]
         else:
             return list(Actions)
 
@@ -79,7 +102,7 @@ class Player:
     def print_hand(self):
         hand_cards_str = [card.to_str() for card in self.hand]
         hcs = ", ".join(hand_cards_str)
-        print(hcs)
+        #print(hcs)
 
 
 class QLearningPlayer(Player):
@@ -89,14 +112,18 @@ class QLearningPlayer(Player):
         self.q_learning_weights = self.load_q_learning_weights()
 
     def get_computer_bid(self, game_state, bid_amount, raise_amount):
-        print(game_state)
+        #print(game_state)
         action = self.get_q_star_action(game_state, bid_amount, raise_amount)
         self.actions.append(action)
         return action
 
-    def make_q_learning_dict_from_state(self, game_state):
+    def make_q_learning_dict_from_state(self, game_state, action):
         q_learning_dict = Counter()
-        key_template = "PREFLOP" if game_state["bidding-round"] == BiddingRound.PREFLOP else "POSTFLOP"
+        player1 = game_state["player-1"]
+        player2 = game_state["player-2"]
+        opponent = player1 if player1 is not self else player2
+        key_template = "PREFLOP" if game_state["betting-round"] == BiddingRound.PREFLOP else "POSTFLOP"
+        key_template = "{}-{}".format(key_template, action)
         for key, value in game_state.items():
             if type(value) in [int, bool, float]:
                 q_learning_dict["{}-{}".format(key_template, key)] = value
@@ -106,36 +133,56 @@ class QLearningPlayer(Player):
                     for key2, value2 in preflop_scores.items():
                         q_learning_dict["{}-hand-{}".format(key_template, key2)] = value2
                 elif len(value) < 5:
+                    hand_score = evalHand(self.hand, value)
                     q_learning_dict["{}-straight-communal-cards".format(key_template)] =\
                         possibleStraight(list(set(value).union(set(self.hand))))
                     q_learning_dict["{}-flush-communal-cards".format(key_template)] =\
                         possibleFlush(list(set(value).union(set(self.hand))))
-                    q_learning_dict["{}-flush-communal-cards".format(key_template)] =\
-                        percentHandStrength(list(set(value).union(set(self.hand))))
-        player1 = game_state["player-1"]
-        player2 = game_state["player-2"]
-        opponent = player1 if player1 is not self else player2
-        print(q_learning_dict)
+                    q_learning_dict["{}-percent-communal-cards".format(key_template)] =\
+                        percentHandStrength(hand_score)
+                    q_learning_dict["{}-handrank".format(key_template)] =\
+                        get_rank(hand_score)
+        if (not (game_state["betting-round"] == BiddingRound.PREFLOP and game_state["no-bids"])) and len(self.actions) > 0\
+                and len(opponent.actions) > 0:
+            q_learning_dict["{}-opponent-just-raised".format(key_template)] =\
+                opponent.actions[len(opponent.actions) - 1] == Actions.RAISE
+            q_learning_dict["{}-player-just-raised".format(key_template)] =\
+                self.actions[len(self.actions) - 1] == Actions.RAISE
+        #print(q_learning_dict)
+        q_learning_dict.divideAll(10.0)
         return q_learning_dict
 
-    def won(self, total_chips, pool_amt): #fuck this hsit
+    def won(self, total_chips, pool_amt, showdown=False):
         this_winnings = self.chips - total_chips + pool_amt
         self.winnings += this_winnings
         self.update_weights(this_winnings)
+        self.updated_vpip = False
+        self.updated_pfr = False
+        self.hands_played += 1
+        if showdown:
+            self.played_to_showdown += 1
+            self.won_at_showdown += 1
 
-    def loss(self, total_chips, pool_amt):
+    def loss(self, total_chips, pool_amt, showdown=False):
         this_winnings = self.chips - total_chips
         self.winnings += this_winnings
         self.update_weights(this_winnings)
+        self.updated_vpip = False
+        self.updated_pfr = False
+        self.hands_played += 1
+        if showdown:
+            self.played_to_showdown += 1
 
     def get_q_value(self, game_state, action):
-        q_learning_dict = self.make_q_learning_dict_from_state(game_state)
+        q_learning_dict = self.make_q_learning_dict_from_state(game_state, action)
         score = 0.0
         for key in q_learning_dict:
-            print(key)
             if (q_learning_dict[key] is None) or (self.q_learning_weights[key] is None):
                 print('hi')
-            score += q_learning_dict[key] * self.q_learning_weights[key]
+            try:
+                score += q_learning_dict[key] * self.q_learning_weights[key]
+            except:
+                pass
         return score
 
     def get_legal_actions(self, game_state, bid_amount, raise_amount):
@@ -161,15 +208,12 @@ class QLearningPlayer(Player):
         weights = self.q_learning_weights
         """  gotta train them weights  """
         for state, action in self.hand_features:
-            difference = winnings - self.get_q_value(state, action)
-            q_learning_dict = self.make_q_learning_dict_from_state(state)
+            difference = (winnings / 1000) - self.get_q_value(state, action)
+            print(difference)
+            q_learning_dict = self.make_q_learning_dict_from_state(state, action)
             for feature in q_learning_dict:
                 weights[feature] += self.learning_rate * difference * q_learning_dict[feature]
-        weights_list = [abs(weight) for weight in weights.values()]
-        weights_list.append(1)
-        max_val = max(weights_list) or 1
-        weights.divideAll(max_val)
-        print(weights)
+        #print(weights)
         self.q_learning_weights = weights
         self.hand_features = []
 
@@ -177,9 +221,26 @@ class QLearningPlayer(Player):
         print("Computer cards:")
         self.print_hand()
         action = self.get_q_star_action(game_state, bid_amount, raise_amount)
-        self.actions.append(action)
-        self.hand_features.append((game_state, action))
-        return self.get_q_star_action(game_state, bid_amount, raise_amount)
+        if random.random() > 0.1:
+            true_action = action
+        else:
+            true_action = random.choice(list(self.get_legal_actions(game_state, bid_amount, raise_amount)))
+        if game_state["betting-round"] == BiddingRound.PREFLOP:
+            if true_action == Actions.RAISE:
+                if not self.updated_vpip:
+                    self.vpip += 1
+                    self.updated_vpip = True
+                if not self.updated_pfr:
+                    self.updated_pfr = True
+                    self.pfr += 1
+            elif true_action == Actions.CALL:
+                if not (self is not game_state["first-player"] and game_state["no-bets"]):
+                    if not self.updated_vpip:
+                        self.vpip += 1
+                        self.updated_vpip = True
+        self.actions.append(true_action)
+        self.hand_features.append((game_state, true_action))
+        return true_action
 
     def get_q_learning_weights_filename(self):
         file_template = "learning_data/q_learning_weights_{}.p"
@@ -212,7 +273,6 @@ class HumanPlayer(Player):
         super().__init__(chips)
 
     def get_human_bid(self, game_state, bid_amount, raise_amount):
-        print(game_state)
         communal_cards = game_state['communal-cards']
         action = None
         Player.print_communal_cards(communal_cards)
@@ -230,6 +290,20 @@ class HumanPlayer(Player):
             action = Actions.CALL
         else:
             action = Actions.RAISE
+        true_action = action
+        if game_state["betting-round"] == BiddingRound.PREFLOP:
+            if true_action == Actions.RAISE:
+                if not self.updated_vpip:
+                    self.vpip += 1
+                    self.updated_vpip = True
+                if not self.updated_pfr:
+                    self.updated_pfr = True
+                    self.pfr += 1
+            elif true_action == Actions.CALL:
+                if not (self is not game_state["first-player"] and game_state["no-bets"]):
+                    if not self.updated_vpip:
+                        self.vpip += 1
+                        self.updated_vpip = True
         self.actions.append(action)
         return action
 
@@ -243,8 +317,23 @@ class RandomPlayer(Player):
 
     def get_bid(self, game_state, bid_amount, raise_amount):
         actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
-        self.actions.append(actions)
-        return random.choice(actions)
+        true_action = random.choice(actions)
+        self.actions.append(true_action)
+        if game_state["betting-round"] == BiddingRound.PREFLOP:
+            if true_action == Actions.RAISE:
+                if not self.updated_vpip:
+                    self.vpip += 1
+                    self.updated_vpip = True
+                if not self.updated_pfr:
+                    self.updated_pfr = True
+                    self.pfr += 1
+            elif true_action == Actions.CALL:
+                if not (self is not game_state["first-player"] and game_state["no-bets"]):
+                    if not self.updated_vpip:
+                        self.vpip += 1
+                        self.updated_vpip = True
+        return true_action
+
       
 class TightPlayer(Player):
     def __init__(self, chips):
@@ -263,10 +352,10 @@ class TightPlayer(Player):
                 else:
                     handScore = evalHand(self.hand, value)
                     features["score"] = handScore
-                    print("HandScore: ",handScore)
+
                     percentHandScore = percentHandStrength(handScore)
                     features["percentScore"] = percentHandScore
-                    print("percentHandScore: ",percentHandScore)
+
                     handRank = get_rank(handScore)
                     preflop_scores = PreflopEvaluator.evaluate_cards(self.hand)
                     flush_score = 0
@@ -290,7 +379,6 @@ class TightPlayer(Player):
     
     
     def get_bid(self, game_state, bid_amount, raise_amount):
-        self.print_hand()
         features = self.get_features(game_state)
         actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
         action = None
@@ -379,6 +467,20 @@ class TightPlayer(Player):
                 else:
                     action = Actions.CALL
         self.actions.append(action)
+        true_action = action
+        if game_state["betting-round"] == BiddingRound.PREFLOP:
+            if true_action == Actions.RAISE:
+                if not self.updated_vpip:
+                    self.vpip += 1
+                    self.updated_vpip = True
+                if not self.updated_pfr:
+                    self.updated_pfr = True
+                    self.pfr += 1
+            elif true_action == Actions.CALL:
+                if not (self is not game_state["first-player"] and game_state["no-bets"]):
+                    if not self.updated_vpip:
+                        self.vpip += 1
+                        self.updated_vpip = True
         return action or Actions.FOLD
       
 class AggressivePlayer(Player):
@@ -398,10 +500,8 @@ class AggressivePlayer(Player):
                 else:
                     handScore = evalHand(self.hand, value)
                     features["score"] = handScore
-                    print("HandScore: ",handScore)
                     percentHandScore = percentHandStrength(handScore)
                     features["percentScore"] = percentHandScore
-                    print("percentHandScore: ",percentHandScore)
                     handRank = get_rank(handScore)
                     preflop_scores = PreflopEvaluator.evaluate_cards(self.hand)
                     flush_score = 0
@@ -425,7 +525,6 @@ class AggressivePlayer(Player):
     
     
     def get_bid(self, game_state, bid_amount, raise_amount):
-        self.print_hand()
         features = self.get_features(game_state)
         actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
         action = None
@@ -520,8 +619,20 @@ class AggressivePlayer(Player):
                 else:
                     action = Actions.CALL
         self.actions.append(action)
-        print(action)
-        print("----------------------")
+        true_action = action
+        if game_state["betting-round"] == BiddingRound.PREFLOP:
+            if true_action == Actions.RAISE:
+                if not self.updated_vpip:
+                    self.vpip += 1
+                    self.updated_vpip = True
+                if not self.updated_pfr:
+                    self.updated_pfr = True
+                    self.pfr += 1
+            elif true_action == Actions.CALL:
+                if not (self is not game_state["first-player"] and game_state["no-bets"]):
+                    if not self.updated_vpip:
+                        self.vpip += 1
+                        self.updated_vpip = True
         return action or Actions.FOLD
       
 

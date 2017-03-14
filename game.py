@@ -9,7 +9,7 @@ from util import BiddingRound
 
 class Game:
     def __init__(self, chips):
-        self.human_player = HumanPlayer(chips)
+        self.human_player = QLearningPlayer(chips, AggressivePlayer)
         self.computer_player = AggressivePlayer(chips)
         self.deck = Deck()
         self.pool = 0
@@ -30,7 +30,7 @@ class Game:
         """
         bid_amount = 5
         counter = -1
-        for i in range(100):
+        for i in range(10000):
             first_player = self.computer_player if counter < 0 else self.human_player
             second_player = self.human_player if counter < 0 else self.computer_player
             self.play_hand(first_player, second_player, bid_amount)
@@ -143,18 +143,18 @@ class Game:
             print("second player won a pot of: ", self.pool)
             print("they had")
             second_player.print_hand()
-            second_player.won(self.chips, self.pool)
-            first_player.loss(self.chips, self.pool)
+            second_player.won(self.chips, self.pool, True)
+            first_player.loss(self.chips, self.pool, True)
         elif first_player_score < second_player_score:
             print("first player won a pot of: ", self.pool)
             print("they had")
             first_player.print_hand()
-            first_player.won(self.chips, self.pool)
-            second_player.loss(self.chips, self.pool)
+            first_player.won(self.chips, self.pool, True)
+            second_player.loss(self.chips, self.pool, True)
         else:
             print("split pot!")
-            first_player.won(self.chips, self.pool / 2.0)
-            second_player.won(self.chips, self.pool / 2.0)
+            first_player.won(self.chips, self.pool / 2.0, True)
+            second_player.won(self.chips, self.pool / 2.0, True)
 
     def update_game_state(self, key, value):
         self.game_state[key] = value
@@ -259,6 +259,7 @@ class Game:
                         do_again = False
                 else:
                     self.pool += first_player.ante(bid_amount)
+
                     self.update_game_state("pool-amount", self.pool)
                     print("first player called\n")
                     do_again = False
@@ -271,7 +272,7 @@ class Game:
 
     #We need to get the bids 1 at a time
     def get_bid(self, player, opponent, communal_cards, opponent_bet, bid_amount, raise_amount):
-        self.update_game_state("pool-amount", self.pool)
+        self.update_game_state("pool-amount", self.pool / 1000.0)
         game_state = self.game_state.copy()
         opponent_stats = opponent.get_stats()
         for key, value in opponent_stats.items():
@@ -280,7 +281,7 @@ class Game:
         for key, value in player_stats.items():
             game_state["player-{}".format(key)] = value
         if len(communal_cards) > 0:
-            game_state["player-total-score"] = Game.evalHand(player.get_hand(), communal_cards)
+            game_state["player-total-score"] = Game.evalHand(player.get_hand(), communal_cards) / 10000.0
         player_bet = player.get_bid(game_state, bid_amount, raise_amount)
         return player_bet
 

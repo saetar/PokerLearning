@@ -59,6 +59,9 @@ class Player:
     def get_legal_actions(self, game_state, bid_amount, raise_amount):
         if self.chips <= 0 or raise_amount > self.chips:
             return [Actions.FOLD, Actions.CALL]
+        elif game_state["bidding-round"] == BiddingRound.PREFLOP:
+            if game_state["first-player"] is not self and game_state["no-bets"]:
+                return [Actions.CALL, Actions.RAISE]
         else:
             return list(Actions)
 
@@ -453,9 +456,15 @@ class AggressivePlayer(Player):
                     if features["hand-range-score"] > 1:
                         action = Actions.CALL
                     else:
-                        action = Actions.FOLD
+                        if Actions.FOLD in actions:
+                            action = Actions.FOLD
+                        else:
+                            action = Actions.CALL
                 else:
-                    action = Actions.FOLD
+                    if Actions.FOLD in actions:
+                        action = Actions.FOLD
+                    else:
+                        action = Actions.CALL
                 
             #they reraised
             else:
@@ -475,8 +484,10 @@ class AggressivePlayer(Player):
                     if random.random() > .4: #most of the time fold but sometimes call so we dont get exploited
                         action = Actions.CALL
                     else:
-                        action = Actions.FOLD
-            return Actions.FOLD #all unconsidered cases fold
+                        if Actions.FOLD in actions:
+                            action = Actions.FOLD
+                        else:
+                            action = Actions.CALL
 
         #post flop
         else:

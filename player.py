@@ -234,11 +234,13 @@ class QLearningPlayer(Player):
         actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
         for action in actions:
             score = self.get_q_value(game_state, action)
+            #print(action, score)
             if score > max_score:
                 optimal_action = [action]
                 max_score = score
             elif score == max_score:
                 optimal_action.append(action)
+        print(optimal_action)
         return random.choice(optimal_action)
 
     def update_weights(self, winnings):
@@ -260,7 +262,7 @@ class QLearningPlayer(Player):
         #print("Computer cards:")
         #self.print_hand()
         action = self.get_q_star_action(game_state, bid_amount, raise_amount)
-        epsilon = 0.25
+        epsilon = 0
         if self.hands_played > 1500:
             epsilon = -0.1
         if random.random() > epsilon:

@@ -32,7 +32,10 @@ class Game:
         counter = -1
         for i in range(num_hands):
             if i%100 == 0:
-                print("another 100 hands")
+                print("computer player winnings")
+                print(self.computer_player.first_half_winnings, self.computer_player.last_half_winnings)
+                print("human player winnings")
+                print(self.human_player.first_half_winnings, self.human_player.last_half_winnings)
             first_player = self.computer_player if counter < 0 else self.human_player
             second_player = self.human_player if counter < 0 else self.computer_player
             self.play_hand(first_player, second_player, bid_amount)

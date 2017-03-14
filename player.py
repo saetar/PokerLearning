@@ -61,7 +61,7 @@ class Player:
     def won(self, total_chips, pool_amt, showdown=False):
         this_winnings = self.chips - total_chips + pool_amt
         self.winnings += this_winnings
-        if self.hands_played < 501:
+        if self.hands_played < 1500:
             self.first_half_winnings += this_winnings
         else:
             self.last_half_winnings += this_winnings
@@ -75,7 +75,7 @@ class Player:
     def loss(self, total_chips, pool_amt, showdown=False):
         this_winnings = self.chips - total_chips
         self.winnings += this_winnings
-        if self.hands_played < 501:
+        if self.hands_played < 1500:
             self.first_half_winnings += this_winnings
         else:
             self.last_half_winnings += this_winnings
@@ -184,7 +184,7 @@ class QLearningPlayer(Player):
         if this_winnings > 100:
             pass
             #self.print_hand()
-        if self.hands_played < 501:
+        if self.hands_played < 1500:
             self.first_half_winnings += this_winnings
         else:
             self.last_half_winnings += this_winnings
@@ -198,7 +198,7 @@ class QLearningPlayer(Player):
     def loss(self, total_chips, pool_amt, showdown=False):
         this_winnings = self.chips - total_chips
         self.winnings += this_winnings
-        if self.hands_played < 501:
+        if self.hands_played < 1500:
             self.first_half_winnings += this_winnings
         else:
             self.last_half_winnings += this_winnings
@@ -248,6 +248,8 @@ class QLearningPlayer(Player):
             difference = (winnings / 1000) - self.get_q_value(state, action)
             #print(difference)
             q_learning_dict = self.make_q_learning_dict_from_state(state, action)
+            if self.hands_played > 750:
+                self.learning_rate = .01
             for feature in q_learning_dict:
                 weights[feature] += self.learning_rate * difference * q_learning_dict[feature]
         ##print(weights)
@@ -258,7 +260,10 @@ class QLearningPlayer(Player):
         #print("Computer cards:")
         #self.print_hand()
         action = self.get_q_star_action(game_state, bid_amount, raise_amount)
-        if random.random() > 0.1:
+        epsilon = 0.25
+        if self.hands_played > 1500:
+            epsilon = -0.1
+        if random.random() > epsilon:
             true_action = action
         else:
            true_action = random.choice(list(self.get_legal_actions(game_state, bid_amount, raise_amount)))

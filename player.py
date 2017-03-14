@@ -122,6 +122,7 @@ class QLearningPlayer(Player):
         super().__init__(chips)
         self.adversary_type = adversary_type
         self.q_learning_weights = self.load_q_learning_weights()
+        self.winnings_file = open("results_data/winnings.csv","w")
 
     def get_computer_bid(self, game_state, bid_amount, raise_amount):
         ##print(game_state)
@@ -194,6 +195,8 @@ class QLearningPlayer(Player):
         if showdown:
             self.played_to_showdown += 1
             self.won_at_showdown += 1
+        self.winnings_file.write("{},".format(self.winnings / self.hands_played))
+
 
     def loss(self, total_chips, pool_amt, showdown=False):
         this_winnings = self.chips - total_chips
@@ -214,6 +217,7 @@ class QLearningPlayer(Player):
                 pass
                 #print("player is all in")
             self.played_to_showdown += 1
+        self.winnings_file.write("{},".format(self.winnings / self.hands_played))
 
     def get_q_value(self, game_state, action):
         q_learning_dict = self.make_q_learning_dict_from_state(game_state, action)
@@ -296,7 +300,7 @@ class QLearningPlayer(Player):
 
     def load_q_learning_weights(self):
         try:
-            weights = pickle.load(self.get_q_learning_weights_filename(), "b")
+            weights = pickle.load(open(self.get_q_learning_weights_filename(), "rb"))
         except:
             weights = Counter()
         return weights

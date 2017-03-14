@@ -19,6 +19,13 @@ class Player:
         self.hand_features = []  # holds list of (game_state,action) pairs for training once we know whether we won or not
         self.learning_rate = 0.01
 
+    def get_stats(self):
+        if len(self.actions) > 0:
+            self.stats['raise-rate'] = sum([action == Actions.RAISE for action in self.actions]) / len(self.actions)
+            self.stats['fold-rate'] = sum(action == Actions.FOLD for action in self.actions) / len(self.actions)
+            self.stats['call-rate'] = sum(action == Actions.CALL for action in self.actions) / len(self.actions)
+        return self.stats
+
     def add_card_to_hand(self, card):
         self.hand.append(card)
 
@@ -47,13 +54,6 @@ class Player:
     def clear_hand(self):
         self.hand = []
         self.hand_features = []
-
-    def get_stats(self):
-        if len(self.actions) > 0:
-            self.stats['raise-rate'] = sum([action == Actions.RAISE for action in self.actions]) / len(self.actions)
-            self.stats['fold-rate'] = sum(action == Actions.FOLD for action in self.actions) / len(self.actions)
-            self.stats['call-rate'] = sum(action == Actions.CALL for action in self.actions) / len(self.actions)
-        return self.stats
 
     def get_legal_actions(self, game_state, bid_amount, raise_amount):
         if self.chips <= 0 or raise_amount > self.chips:
@@ -104,6 +104,7 @@ class QLearningPlayer(Player):
                 elif len(value) < 5:
                     q_learning_dict["{}-straight-communal-cards".format(key_template)] =\
                         possibleStraight(list(set(value).union(set(self.hand))))
+        print(q_learning_dict)
         return q_learning_dict
 
     def won(self, total_chips, pool_amt): #fuck this hsit
@@ -165,6 +166,7 @@ class QLearningPlayer(Player):
         print("Computer cards:")
         self.print_hand()
         action = self.get_q_star_action(game_state, bid_amount, raise_amount)
+        self.actions.append(action)
         self.hand_features.append((game_state, action))
         return self.get_q_star_action(game_state, bid_amount, raise_amount)
 
@@ -230,6 +232,7 @@ class RandomPlayer(Player):
 
     def get_bid(self, game_state, bid_amount, raise_amount):
         actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
+        self.actions.append(actions)
         return random.choice(actions)
       
 class TightPlayer(Player):
@@ -279,6 +282,7 @@ class TightPlayer(Player):
         self.print_hand()
         features = self.get_features(game_state)
         actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
+        action = None
         ace = False
         for card in self.hand:
             if card.value == 1:
@@ -288,82 +292,83 @@ class TightPlayer(Player):
             if bid_amount < 10: #limp or call
                 #suited connectors
                 if features["hand-flush-score"] == 1 and features["hand-range-score"] > 3:
-                    return Actions.CALL
+                    action = Actions.CALL
                 #pairs
                 elif features["hand-pair-score"] == 1:
                     if self.hand[0].value > 9:
-                        return Actions.RAISE
+                        action = Actions.RAISE
                     else:
-                        return Actions.CALL
+                        action = Actions.CALL
                 #Aces and Kings
                 elif max(self.hand[0].value, self.hand[1].value) > 12 or ace:
                     if features["hand-flush-score"] == 1:
-                        return Actions.RAISE
+                        action = Actions.RAISE
                     elif ace and max(self.hand[0].value, self.hand[1].value) > 7:
-                        return Actions.RAISE
+                        action = Actions.RAISE
                     elif (not ace) and min(self.hand[0].value, self.hand[1].value) > 9 :
-                        return Actions.RAISE
+                        action = Actions.RAISE
                     else:
-                        return Actions.CALL
+                        action = Actions.CALL
                 elif max(self.hand[0].value, self.hand[1].value) > 8:
                     if features["hand-range-score"] > 3:
-                        return Actions.CALL
+                        action = Actions.CALL
                     else:
-                        return Actions.FOLD
+                        action = Actions.FOLD
                 else:
-                    return Actions.FOLD
+                    action = Actions.FOLD
             #they reraised
             else:
                 if ace and features["hand-pair-score"] == 1: #If we have pocket aces raise
-                    return Actions.RAISE
+                    action = Actions.RAISE
                 if ace:
                     if self.hand[0].value + self.hand[1].value > 7: #If we have a decent kicker call
-                        return Actions.CALL
+                        action = Actions.CALL
                 elif self.hand[0].value + self.hand[1].value > 20: #If our cards are high
                     if features["hand-pair-score"] == 1 and self.hand[0].value > 11: #if we have a pair
-                        return Actions.RAISE
+                        action = Actions.RAISE
                     else:
-                        return Actions.CALL
+                        action = Actions.CALL
                 else:
                     if random.random() > .75: #most of the time fold but sometimes call so we dont get exploited
-                        return Actions.CALL
+                        action = Actions.CALL
                     else:
-                        return Actions.FOLD
+                        action = Actions.FOLD
             return Actions.FOLD #all unconsidered cases fold
 
         #post flop
         else:
             if features["percentScore"] < .3 and features["percentScore"]:
-                return Actions.RAISE
+                action = Actions.RAISE
             if features["percentScore"] < .3:
-                return Actions.RAISE
+                action = Actions.RAISE
             elif features["percentScore"] > .3 and features["percentScore"] < .8:
-                return Actions.CALL
+                action = Actions.CALL
             else:
                 if Actions.FOLD in actions: #if we can't check fold otherwise check
                     if features["possible-straight"]:
                         if ace:
-                            return Actions.CALL
+                            action = Actions.CALL
                         elif self.hand[0].value + self.hand[1].value > 22:
-                            return Actions.CALL
+                            action = Actions.CALL
                         elif features["possible-flush"]:
-                            return Actions.CALL
+                            action = Actions.CALL
                         else:
-                            return Actions.FOLD
+                            action = Actions.FOLD
                     if features["possible-flush"]:
                         if ace:
-                            return Actions.CALL
+                            action = Actions.CALL
                         elif self.hand[0].value + self.hand[1].value > 22:
-                            return Actions.CALL
+                            action = Actions.CALL
                         elif features["possible-straight"]:
-                            return Actions.CALL
+                            action = Actions.CALL
                         else:
-                            return Actions.FOLD
-                    return Actions.FOLD
+                            action = Actions.FOLD
+                    else:
+                        action = Actions.FOLD
                 else:
-                    return Actions.CALL
-        #print(actions)
-        return Actions.FOLD
+                    action = Actions.CALL
+        self.actions.append(action)
+        return action or Actions.FOLD
       
 class AggressivePlayer(Player):
     def __init__(self, chips):
@@ -371,7 +376,9 @@ class AggressivePlayer(Player):
 
     def get_bid(self, game_state, bid_amount, raise_amount):
         actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
-        return random.choice(actions)
+        action = random.choice(actions)
+        self.actions.append(action)
+        return action
       
 
 

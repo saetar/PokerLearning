@@ -9,7 +9,7 @@ from util import BiddingRound
 
 class Game:
     def __init__(self, chips):
-        self.human_player = QLearningPlayer(chips)
+        self.human_player = AggressivePlayer(chips)
         self.computer_player = QLearningPlayer(chips, type(self.human_player))
         self.deck = Deck()
         self.pool = 0

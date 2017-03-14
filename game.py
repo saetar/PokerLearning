@@ -127,7 +127,7 @@ class Game:
         communal_cards.append(self.deck.pop())
         if not self.all_in:
             """  Go through a 4th round of betting  """
-            winner = self.do_betting_round(first_player, second_player, communal_cards, BiddingRound.PREFLOP)
+            winner = self.do_betting_round(first_player, second_player, communal_cards, BiddingRound.POST_FLOP)
         #print("The pot after the river is: ", self.pool)
         if winner:
             loser = first_player if first_player is not winner else second_player

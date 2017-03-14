@@ -20,7 +20,7 @@ class Player:
         self.stats = Counter()
         self.actions = []
         self.hand_features = []  # holds list of (game_state,action) pairs for training once we know whether we won or not
-        self.learning_rate = 0.01
+        self.learning_rate = 0.1
         self.hands_played = 1
         self.pfr = 0
         self.vpip = 0
@@ -255,7 +255,7 @@ class QLearningPlayer(Player):
 
     def get_bid(self, game_state, bid_amount, raise_amount):
         #print("Computer cards:")
-        self.print_hand()
+        #self.print_hand()
         action = self.get_q_star_action(game_state, bid_amount, raise_amount)
         #if random.random() > -0.1:
         #    true_action = action

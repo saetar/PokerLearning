@@ -354,7 +354,7 @@ class TightPlayer(Player):
                             action = Actions.CALL
                         else:
                             action = Actions.FOLD
-                    if features["possible-flush"]:
+                    elif features["possible-flush"]:
                         if ace:
                             action = Actions.CALL
                         elif self.hand[0].value + self.hand[1].value > 22:
@@ -373,12 +373,137 @@ class TightPlayer(Player):
 class AggressivePlayer(Player):
     def __init__(self, chips):
         super().__init__(chips)
-
+    
+    def get_features(self, game_state):
+        features = Counter()
+        for key, value in game_state.items():
+            if type(value) in [int, bool, float]:
+                features[key] = value
+            elif key == "communal-cards":
+                if len(value) == 0: # use preflop evaluator
+                    preflop_scores = PreflopEvaluator.evaluate_cards(self.hand)
+                    for key2, value2 in preflop_scores.items():
+                        features["hand-{}".format(key2)] = value2
+                else:
+                    handScore = evalHand(self.hand, value)
+                    features["score"] = handScore
+                    print("HandScore: ",handScore)
+                    percentHandScore = percentHandStrength(handScore)
+                    features["percentScore"] = percentHandScore
+                    print("percentHandScore: ",percentHandScore)
+                    handRank = get_rank(handScore)
+                    preflop_scores = PreflopEvaluator.evaluate_cards(self.hand)
+                    flush_score = 0
+                    if handRank != 4:
+                        if preflop_scores['flush-score'] == 1:
+                            flush_score = 2
+                            for card in value:
+                                if self.hand[0].suit == card.suit:
+                                    flush_score += 1
+                        if (5-flush_score) <= (5 - len(value)):
+                            features["possible-flush"] = True
+                    if handRank != 5:
+                        all_cards = self.hand + value
+                        features["possible-straight"] = possibleStraight(all_cards)
+           
+                    for key2, value2 in preflop_scores.items():
+                        features["hand-{}".format(key2)] = value2
+                   
+                    
+        return features
+    
+    
     def get_bid(self, game_state, bid_amount, raise_amount):
+        self.print_hand()
+        features = self.get_features(game_state)
         actions = self.get_legal_actions(game_state, bid_amount, raise_amount)
-        action = random.choice(actions)
+        action = None
+        ace = False
+        for card in self.hand:
+            if card.value == 1:
+                ace = True
+        #pre flop
+        if features["score"] == 0:
+            if bid_amount < 10: #limp or call
+                #pairs
+                if features["hand-pair-score"] == 1:
+                    action = Actions.RAISE
+                #Aces and Kings
+                elif max(self.hand[0].value, self.hand[1].value) > 11 or ace:
+                    if features["hand-flush-score"] == 1:
+                        action = Actions.RAISE
+                    elif ace and max(self.hand[0].value, self.hand[1].value) > 4:
+                        action = Actions.RAISE
+                    elif (not ace) and min(self.hand[0].value, self.hand[1].value) > 6 :
+                        action = Actions.RAISE
+                    else:
+                        action = Actions.CALL
+                #suited connectors
+                elif features["hand-flush-score"] == 1 and features["hand-range-score"] > 1:
+                    action = Actions.CALL
+                elif max(self.hand[0].value, self.hand[1].value) > 8:
+                    if features["hand-range-score"] > 1:
+                        action = Actions.CALL
+                    else:
+                        action = Actions.FOLD
+                else:
+                    action = Actions.FOLD
+                
+            #they reraised
+            else:
+                if ace and features["hand-pair-score"] == 1: #If we have pocket aces raise
+                    action = Actions.RAISE
+                elif ace:
+                    if self.hand[0].value + self.hand[1].value > 12: #If we have a decent kicker call
+                        action = Actions.RAISE
+                    else:
+                        action = Actions.CALL
+                elif self.hand[0].value + self.hand[1].value > 15: #If our cards are high
+                    if features["hand-pair-score"] == 1 and self.hand[0].value > 8: #if we have a pair
+                        action = Actions.RAISE
+                    else:
+                        action = Actions.CALL
+                else:
+                    if random.random() > .4: #most of the time fold but sometimes call so we dont get exploited
+                        action = Actions.CALL
+                    else:
+                        action = Actions.FOLD
+            return Actions.FOLD #all unconsidered cases fold
+
+        #post flop
+        else:
+            if features["percentScore"] < .5:
+                action = Actions.RAISE
+            elif features["percentScore"] > .5 and features["percentScore"] < .9:
+                action = Actions.CALL
+            else:
+                if Actions.FOLD in actions: #if we can't check fold otherwise check
+                    if features["possible-straight"]:
+                        if ace:
+                            action = Actions.CALL
+                        elif self.hand[0].value + self.hand[1].value > 18:
+                            action = Actions.CALL
+                        elif features["possible-flush"]:
+                            action = Actions.CALL
+                        else:
+                            action = Actions.FOLD
+                    elif features["possible-flush"]:
+                        if ace:
+                            action = Actions.CALL
+                        elif self.hand[0].value + self.hand[1].value > 18:
+                            action = Actions.CALL
+                        elif features["possible-straight"]:
+                            action = Actions.CALL
+                        else:
+                            action = Actions.FOLD
+                    else:
+                        action = Actions.FOLD
+                else:
+                    action = Actions.CALL
         self.actions.append(action)
-        return action
+        print(action)
+        print("----------------------")
+        return action or Actions.FOLD
       
 
 

@@ -9,6 +9,7 @@ from util import BiddingRound
 
 class Game:
     def __init__(self, chips):
+
         self.human_player = HumanPlayer(chips)
         self.computer_player = TightPlayer(chips)
         self.deck = Deck()
@@ -28,7 +29,7 @@ class Game:
         """
         bid_amount = 5
         counter = -1
-        while not self.human_player.is_out() and not self.computer_player.is_out():
+        for i in range(1000):
             first_player = self.computer_player if counter < 0 else self.human_player
             second_player = self.human_player if counter < 0 else self.computer_player
             self.play_hand(first_player, second_player, bid_amount)
@@ -183,6 +184,7 @@ class Game:
             first_player_bet = self.get_bid(first_player, second_player, communal_cards,
                                             second_player_bet, bid_amount, raise_amount)
             if first_player_bet == Actions.RAISE:
+<<<<<<< HEAD
                 if no_bets and self.game_state["betting-round"] == BiddingRound.PREFLOP:
                     self.pool += first_player.ante(7.5)
                     self.update_game_state("pool-amount", self.pool)
@@ -192,6 +194,12 @@ class Game:
                         raise_amount = first_player.chips
                         self.update_game_state("all-in", True)
                     self.pool += first_player.ante(raise_amount)
+=======
+                if raise_amount > first_player.chips:
+                    self.all_in = True
+                    raise_amount = first_player.chips
+                self.update_game_state("all-in", self.all_in)
+>>>>>>> e0068e9b1d2f9fdf7eedf021cdeeca5df9c6e3af
                 no_bets = False
                 
                 self.update_game_state("pool-amount", self.pool)
@@ -214,7 +222,7 @@ class Game:
                     if raise_amount > second_player.chips:
                         self.all_in = True
                         raise_amount = second_player.chips
-                        self.update_game_state("all-in", True)
+                    self.update_game_state("all-in", self.all_in)
                     print("second player raised\n")
                     self.pool += second_player.ante(raise_amount)
                     self.update_game_state("pool-amount", self.pool)
@@ -233,7 +241,7 @@ class Game:
                         if raise_amount > second_player.chips:
                             self.all_in = True
                             raise_amount = second_player.chips
-                            self.update_game_state("all-in", True)
+                        self.update_game_state("all-in", self.all_in)
                         no_bets = False
                         self.update_game_state("no-bets", no_bets)
                         print("second player raised\n")

@@ -78,8 +78,9 @@ class Player:
 
 
 class QLearningPlayer(Player):
-    def __init__(self, chips):
+    def __init__(self, chips, adversary_type=None):
         super().__init__(chips)
+        self.adversary_type = adversary_type
         self.q_learning_weights = self.load_q_learning_weights()
 
     def get_computer_bid(self, game_state, bid_amount, raise_amount):
@@ -145,7 +146,9 @@ class QLearningPlayer(Player):
             q_learning_dict = self.make_q_learning_dict_from_state(state)
             for feature in q_learning_dict:
                 weights[feature] += self.learning_rate * difference * q_learning_dict[feature]
-        max_val = max(max(abs(weight) for weight in weights.values()), 1)
+        weights_list = [abs(weight) for weight in weights.values()]
+        weights_list.append(1)
+        max_val = max(weights_list) or 1
         weights.divideAll(max_val)
         print(weights)
         self.q_learning_weights = weights
@@ -158,16 +161,30 @@ class QLearningPlayer(Player):
         self.hand_features.append((game_state, action))
         return self.get_q_star_action(game_state, bid_amount, raise_amount)
 
+    def get_q_learning_weights_filename(self):
+        file_template = "learning_data/q_learning_weights_{}.p"
+        type_fillins = {
+            RandomPlayer: "random",
+            QLearningPlayer: "meta",
+            TightPlayer: "tight",
+            AggressivePlayer: "aggressive"
+        }
+        if self.adversary_type not in type_fillins:
+            filename = file_template.format(type_fillins[random.choice(list(type_fillins.keys()))])
+        else:
+            filename = file_template.format(type_fillins[self.adversary_type])
+        return filename
+
     def load_q_learning_weights(self):
         try:
-            weights = pickle.load(open("learning_data/q_learning_weights.p", "rb"))
+            weights = pickle.load(self.get_q_learning_weights_filename(), "b")
         except:
             weights = Counter()
         return weights
 
     def store_q_learning_weights(self):
         weights = self.q_learning_weights
-        pickle.dump(weights, open("learning_data/q_learning_weights.p", "wb"))
+        pickle.dump(weights, open(self.get_q_learning_weights_filename(), "wb"))
 
 
 class HumanPlayer(Player):
@@ -301,12 +318,12 @@ class TightPlayer(Player):
                         return Actions.CALL
                     else:
                         return Actions.FOLD
-            return Actions.Fold #all unconsidered cases fold
+            return Actions.FOLD #all unconsidered cases fold
 
         #post flop
         else:
             if features["percentScore"] < .3 and features["percentScore"]:
-                return actions.RAISE
+                return Actions.RAISE
             #if features["percentScore"] > .9
 
 

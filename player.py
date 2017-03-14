@@ -101,6 +101,9 @@ class QLearningPlayer(Player):
                     preflop_scores = PreflopEvaluator.evaluate_cards(self.hand)
                     for key2, value2 in preflop_scores.items():
                         q_learning_dict["{}-hand-{}".format(key_template, key2)] = value2
+                elif len(value) < 5:
+                    q_learning_dict["{}-straight-communal-cards".format(key_template)] =\
+                        possibleStraight(list(set(value).union(set(self.hand))))
         return q_learning_dict
 
     def won(self, total_chips, pool_amt): #fuck this hsit

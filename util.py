@@ -119,7 +119,7 @@ def percentHandStrength(score):
                                   
 def possibleStraight(cards):
     card_values = []
-    for card in all_cards:
+    for card in cards:
         cardval = card.value
         if cardval == 1:
             cardval = 14
@@ -128,7 +128,7 @@ def possibleStraight(cards):
         for i in range(2,15):
             for j in range(2,15):
                 card_values.append(i)
-                sort(card_values)
+                card_values.sort()
                 possibleStraight = True
                 for k in range(len(card_values) - 1):
                     if card_values[k] + 1 != card_values[k+1]:
@@ -139,18 +139,20 @@ def possibleStraight(cards):
             card_values.remove(i)
 
     elif len(cards) == 4:
-        for i in range(2,15):
-          card_values.append(i)
-          sort(card_values)
-          possibleStraight = True
-          for k in range(len(card_values) - 1):
+        for i in range(2, 15):
+            card_values.append(i)
+            card_values.sort()
+            possibleStraight = True
+            for k in range(len(card_values) - 1):
               if card_values[k] + 1 != card_values[k+1]:
                   possibleStraight = False
-          if possibleStraight:
+            if possibleStraight:
               return True
-          card_values.remove(i)
+            card_values.remove(i)
     else:
-        return features["possible-straight"] = False
+        return False
+
+
 class PreflopEvaluator:
     @staticmethod
     def get_range_score(hand):

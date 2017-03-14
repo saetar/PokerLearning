@@ -6,6 +6,7 @@ from util import evalHand
 from util import get_rank
 from util import percentHandStrength
 from util import possibleStraight
+from util import possibleFlush
 from util import BiddingRound
 import pickle
 
@@ -104,6 +105,13 @@ class QLearningPlayer(Player):
                 elif len(value) < 5:
                     q_learning_dict["{}-straight-communal-cards".format(key_template)] =\
                         possibleStraight(list(set(value).union(set(self.hand))))
+                    q_learning_dict["{}-flush-communal-cards".format(key_template)] =\
+                        possibleFlush(list(set(value).union(set(self.hand))))
+                    q_learning_dict["{}-flush-communal-cards".format(key_template)] =\
+                        percentHandStrength(list(set(value).union(set(self.hand))))
+        player1 = game_state["player-1"]
+        player2 = game_state["player-2"]
+        opponent = player1 if player1 is not self else player2
         print(q_learning_dict)
         return q_learning_dict
 

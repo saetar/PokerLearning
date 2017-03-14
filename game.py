@@ -16,6 +16,8 @@ class Game:
         self.chips = chips
         self.hands_played = 0
         self.game_state = Counter()
+        self.game_state["player-1"] = self.human_player
+        self.game_state["player-2"] = self.computer_player
         self.all_in = False
 
     @staticmethod

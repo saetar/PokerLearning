@@ -1,7 +1,7 @@
 ## PokerLearner Instructions
 To run the program, you must have python3.
 
-Simply clown or download the repository and cd into the root directory. Then type:
+Simply clone or download the repository and cd into the root directory. Then type:
 `python3 main.py <num_hands> <opponent_type>`
 
 Opponent types include:

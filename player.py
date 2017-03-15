@@ -122,7 +122,7 @@ class QLearningPlayer(Player):
         super().__init__(chips)
         self.adversary_type = adversary_type
         self.q_learning_weights = self.load_q_learning_weights()
-        self.winnings_file = open("results_data/winnings.csv","w")
+        self.winnings_file = open("results_data/winnings_random.csv", "w")
 
     def get_computer_bid(self, game_state, bid_amount, raise_amount):
         ##print(game_state)

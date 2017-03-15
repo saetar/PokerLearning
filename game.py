@@ -9,15 +9,15 @@ import sys
 
 class Game:
     def __init__(self, chips, opponent):
-        self.human_player = QLearningPlayer(chips, opponent)
-        self.computer_player = opponent(chips)
+        self.q_learning_player = QLearningPlayer(chips, opponent)
+        self.opponent_player = opponent(chips)
         self.deck = Deck()
         self.pool = 0
         self.chips = chips
         self.hands_played = 0
         self.game_state = Counter()
-        self.game_state["player-1"] = self.human_player
-        self.game_state["player-2"] = self.computer_player
+        self.game_state["player-1"] = self.q_learning_player
+        self.game_state["player-2"] = self.opponent_player
         self.all_in = False
 
     @staticmethod
@@ -33,8 +33,8 @@ class Game:
         for i in range(num_hands):
             if i%100 == 0:
                 print("another 100 hands")
-            first_player = self.computer_player if counter < 0 else self.human_player
-            second_player = self.human_player if counter < 0 else self.computer_player
+            first_player = self.opponent_player if counter < 0 else self.q_learning_player
+            second_player = self.q_learning_player if counter < 0 else self.opponent_player
             self.play_hand(first_player, second_player, bid_amount)
             if type(first_player) == QLearningPlayer:
                 first_player.store_q_learning_weights()
@@ -45,9 +45,9 @@ class Game:
             ##print("-------------- NEW HAND -------------")
             counter *= -1
         print("computer player winnings")
-        print(self.computer_player.first_half_winnings, self.computer_player.last_half_winnings)
+        print(self.opponent_player.first_half_winnings, self.opponent_player.last_half_winnings)
         print("human player winnings")
-        print(self.human_player.first_half_winnings, self.human_player.last_half_winnings)
+        print(self.q_learning_player.first_half_winnings, self.q_learning_player.last_half_winnings)
 
     def play_hand(self, first_player, second_player, bid_amount):
         """
@@ -58,10 +58,10 @@ class Game:
             plays out a hand, keeping track of antes, and actions
         """
         """ Tell the player how many chips they have and which player they are"""
-        if self.human_player == first_player:
+        if self.q_learning_player == first_player:
             ##print("You are the first player")
             opponent_player = second_player
-        elif self.human_player == second_player:
+        elif self.q_learning_player == second_player:
             ##print("You are the second player")
             opponent_player = first_player
         self.deck = Deck()
@@ -174,7 +174,7 @@ class Game:
                  pool is total amount bet, winner is player that won else None:
         """
         self.update_game_state("communal-cards", communal_cards)
-        first = self.computer_player if first_player == self.computer_player else self.human_player
+        first = self.opponent_player if first_player == self.opponent_player else self.q_learning_player
         self.update_game_state("first-player", first)
         self.update_game_state("betting-round", bidding_round)
         self.update_game_state("pool-amount", self.pool)
@@ -311,7 +311,7 @@ class Game:
         #                                                        self.computer_player.winnings / self.hands_played))
         #print("Human player's winnings: {}, per hand: {}".format(self.human_player.winnings,
         #                                                         self.human_player.winnings / self.hands_played))
-        return self.computer_player.winnings / self.hands_played, self.human_player.winnings / self.hands_played
+        return self.opponent_player.winnings / self.hands_played, self.q_learning_player.winnings / self.hands_played
 
 
 def main(args):
